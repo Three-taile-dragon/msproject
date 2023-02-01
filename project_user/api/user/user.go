@@ -3,7 +3,7 @@ package user
 import (
 	"context"
 	"github.com/gin-gonic/gin"
-	"log"
+	"go.uber.org/zap"
 	"net/http"
 	common "test.com/project_common"
 	"test.com/project_user/pkg/dao"
@@ -39,7 +39,10 @@ func (h *HandlerUser) getCaptcha(ctx *gin.Context) {
 	//4.调用短信平台(第三方 放入go func 协程 接口可以快速响应
 	go func() {
 		time.Sleep(2 * time.Second)
-		log.Println("短信平台调用成功，发送短信")
+		zap.L().Info("短信平台调用成功，发送短信")
+		//logs.LG.Debug("短信平台调用成功，发送短信 debug")
+		//zap.L().Debug("短信平台调用成功，发送短信 debug")
+		//zap.L().Error("短信平台调用成功，发送短信 error")
 		//redis存储	假设后续缓存可能存在mysql当中,也可以存在mongo当中,也可能存在memcache当中
 		//使用接口 达到低耦合高内聚
 		//5.存储验证码 redis 当中,过期时间15分钟
@@ -48,9 +51,10 @@ func (h *HandlerUser) getCaptcha(ctx *gin.Context) {
 		defer cancel()
 		err := h.cache.Put(c, "REGISTER_"+mobile, code, 15*time.Minute)
 		if err != nil {
-			log.Printf("验证码存入redis出错,cause by : %v \n", err)
+			zap.L().Error("验证码存入redis出错,cause by : " + err.Error() + "\n")
+
 		}
-		log.Printf("将手机号和验证码存入redis成功：REGISTER_%s : %s", mobile, code)
+		zap.L().Debug("将手机号和验证码存入redis成功：REGISTER_" + mobile + " : " + code + "\n")
 	}()
 	//注意code一般不发送
 	//这里是做了简化处理 由于短信平台目前对于个人不好使用
