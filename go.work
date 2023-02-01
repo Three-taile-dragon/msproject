@@ -1,3 +1,6 @@
 go 1.18
 
-use ./project_user
+use (
+	./project_user
+	project_common
+)
