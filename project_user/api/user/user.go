@@ -1,19 +1,29 @@
 package user
 
 import (
+	"context"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
 	common "test.com/project_common"
+	"test.com/project_user/pkg/dao"
 	"test.com/project_user/pkg/model"
+	"test.com/project_user/pkg/repo"
 	"test.com/project_user/util"
 	"time"
 )
 
 type HandlerUser struct {
+	cache repo.Cache
 }
 
-func (*HandlerUser) getCaptcha(ctx *gin.Context) {
+func New() *HandlerUser {
+	return &HandlerUser{
+		cache: dao.Rc, //使用redis
+	}
+}
+
+func (h *HandlerUser) getCaptcha(ctx *gin.Context) {
 	rsp := &common.Result{}
 	//1.获取参数
 	mobile := ctx.PostForm("mobile")
@@ -30,7 +40,16 @@ func (*HandlerUser) getCaptcha(ctx *gin.Context) {
 	go func() {
 		time.Sleep(2 * time.Second)
 		log.Println("短信平台调用成功，发送短信")
+		//redis存储	假设后续缓存可能存在mysql当中,也可以存在mongo当中,也可能存在memcache当中
+		//使用接口 达到低耦合高内聚
 		//5.存储验证码 redis 当中,过期时间15分钟
+		//redis.Set"REGISTER_"+mobile, code)
+		c, cancel := context.WithTimeout(context.Background(), 2*time.Second) //编写上下文 最多允许两秒超时
+		defer cancel()
+		err := h.cache.Put(c, "REGISTER_"+mobile, code, 15*time.Minute)
+		if err != nil {
+			log.Printf("验证码存入redis出错,cause by : %v \n", err)
+		}
 		log.Printf("将手机号和验证码存入redis成功：REGISTER_%s : %s", mobile, code)
 	}()
 	//注意code一般不发送
