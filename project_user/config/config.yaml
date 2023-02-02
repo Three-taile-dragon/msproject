@@ -1,0 +1,16 @@
+server:
+  name: "project_user"
+  addr: "127.0.0.1:3456"
+
+zap:
+  debugFileName: "F:\\Go_item\\ms_project\\logs\\debug\\project-debug.log"
+  infoFileName: "F:\\Go_item\\ms_project\\logs\\info\\project-info.log"
+  warnFileName: "F:\\Go_item\\ms_project\\logs\\error\\project-error.log"
+  maxSize: 500,
+  maxAge: 28,
+  MaxBackups: 3
+redis:
+  host: "localhost"
+  port: 6379
+  password: ""
+  db: 0
