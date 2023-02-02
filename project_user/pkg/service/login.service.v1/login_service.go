@@ -54,5 +54,5 @@ func (ls *LoginService) GetCaptcha(ctx context.Context, req *CaptchaRequest) (*C
 	}()
 	//注意code一般不发送
 	//这里是做了简化处理 由于短信平台目前对于个人不好使用
-	return &CaptchaResponse{}, nil
+	return &CaptchaResponse{Code: code}, nil
 }

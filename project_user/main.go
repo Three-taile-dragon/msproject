@@ -4,7 +4,6 @@ import (
 	"github.com/gin-gonic/gin"
 	srv "test.com/project_common"
 	"test.com/project_common/logs"
-	_ "test.com/project_user/api"
 	"test.com/project_user/config"
 	"test.com/project_user/router"
 )
