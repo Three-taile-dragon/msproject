@@ -15,6 +15,7 @@ type Config struct {
 	viper *viper.Viper
 	SC    *ServerConfig
 	GC    *GrpcConfig
+	EC    *EtcdConfig
 }
 
 type ServerConfig struct {
@@ -23,8 +24,14 @@ type ServerConfig struct {
 }
 
 type GrpcConfig struct {
-	Name string
-	Addr string
+	Name    string
+	Addr    string
+	Version string
+	Weight  int64
+}
+
+type EtcdConfig struct {
+	Addrs []string
 }
 
 // InitConfig 读取配置文件
@@ -44,6 +51,7 @@ func InitConfig() *Config {
 	conf.ReadServerConfig()
 	conf.InitZapLog()
 	conf.ReadGrpcConfig()
+	conf.ReadEtcdConfig()
 	return conf
 }
 
@@ -60,7 +68,21 @@ func (c *Config) ReadGrpcConfig() {
 	gc := &GrpcConfig{}
 	gc.Name = c.viper.GetString("grpc.name") //读取配置
 	gc.Addr = c.viper.GetString("grpc.addr")
+	gc.Version = c.viper.GetString("grpc.version")
+	gc.Weight = c.viper.GetInt64("grpc.weight")
 	c.GC = gc
+}
+
+// ReadEtcdConfig 读取etcd地址配置
+func (c *Config) ReadEtcdConfig() {
+	ec := &EtcdConfig{}
+	var addrs []string
+	err := c.viper.UnmarshalKey("etcd.addrs", &addrs)
+	if err != nil {
+		log.Fatalf("etcd config read wrong, err :%v \n", err)
+	}
+	ec.Addrs = addrs
+	c.EC = ec
 }
 func (c *Config) InitZapLog() {
 	//从配置中读取日志配置，初始化日志

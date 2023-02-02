@@ -3,7 +3,11 @@ package user
 import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/resolver"
 	"log"
+	"test.com/project_api/config"
+	"test.com/project_common/discovery"
+	"test.com/project_common/logs"
 	login_service_v1 "test.com/project_user/pkg/service/login.service.v1"
 )
 
@@ -11,7 +15,11 @@ var LoginServiceClient login_service_v1.LoginServiceClient
 
 // InitRpcUserClient 初始化grpc客户段连接
 func InitRpcUserClient() {
-	conn, err := grpc.Dial("127.0.0.1:8881", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	//grpc 连接 etcd
+	etcdRegister := discovery.NewResolver(config.C.EC.Addrs, logs.LG)
+	resolver.Register(etcdRegister)
+	// etcd:/// + grpc服务名
+	conn, err := grpc.Dial("etcd:///user", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
