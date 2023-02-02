@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func Run(r *gin.Engine, srvName string, addr string) {
+func Run(r *gin.Engine, srvName string, addr string, stop func()) {
 	//写一个优雅的启停代码
 	srv := &http.Server{
 		Addr:    addr,
@@ -35,6 +35,9 @@ func Run(r *gin.Engine, srvName string, addr string) {
 	//延时关闭
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Nanosecond)
 	defer cancel()
+	if stop != nil {
+		stop()
+	}
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Fatalf("%s server Shutdown, cause by : %v", srvName, err)
 	}

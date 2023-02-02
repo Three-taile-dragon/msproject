@@ -16,6 +16,11 @@ func main() {
 	r.Use(logs.GinLogger(), logs.GinRecovery(true)) //接收gin框架默认日志
 	//路由
 	router.InitRouter(r)
+	//grpc注册
+	gc := router.RegisterGrpc()
+	stop := func() {
+		gc.Stop()
+	}
 	//r.Run(":8080")
-	srv.Run(r, config.C.SC.Name, config.C.SC.Addr) //使用viper读取yaml配置文件
+	srv.Run(r, config.C.SC.Name, config.C.SC.Addr, stop) //使用viper读取yaml配置文件
 }

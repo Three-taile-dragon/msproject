@@ -14,9 +14,15 @@ var C = InitConfig()
 type Config struct {
 	viper *viper.Viper
 	SC    *ServerConfig
+	GC    *GrpcConfig
 }
 
 type ServerConfig struct {
+	Name string
+	Addr string
+}
+
+type GrpcConfig struct {
 	Name string
 	Addr string
 }
@@ -37,6 +43,7 @@ func InitConfig() *Config {
 	}
 	conf.ReadServerConfig()
 	conf.InitZapLog()
+	conf.ReadGrpcConfig()
 	return conf
 }
 
@@ -46,6 +53,14 @@ func (c *Config) ReadServerConfig() {
 	sc.Name = c.viper.GetString("server.name") //读取配置
 	sc.Addr = c.viper.GetString("server.addr")
 	c.SC = sc
+}
+
+// ReadServerConfig 读取grpc配置
+func (c *Config) ReadGrpcConfig() {
+	gc := &GrpcConfig{}
+	gc.Name = c.viper.GetString("grpc.name") //读取配置
+	gc.Addr = c.viper.GetString("grpc.addr")
+	c.GC = gc
 }
 func (c *Config) InitZapLog() {
 	//从配置中读取日志配置，初始化日志

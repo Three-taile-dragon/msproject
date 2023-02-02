@@ -2,6 +2,11 @@ package router
 
 import (
 	"github.com/gin-gonic/gin"
+	"google.golang.org/grpc"
+	"log"
+	"net"
+	"test.com/project_user/config"
+	loginServiceV1 "test.com/project_user/pkg/service/login.service.v1"
 )
 
 // Router 接口
@@ -38,4 +43,33 @@ func InitRouter(r *gin.Engine) {
 // Register 添加到路由列表中去
 func Register(ro ...Router) {
 	routers = append(routers, ro...)
+}
+
+type gRPCConfig struct {
+	Addr         string
+	RegisterFunc func(*grpc.Server)
+}
+
+// RegisterGrpc 注册grpc服务
+func RegisterGrpc() *grpc.Server {
+	c := gRPCConfig{
+		Addr: config.C.GC.Addr,
+		RegisterFunc: func(g *grpc.Server) {
+			loginServiceV1.RegisterLoginServiceServer(g, loginServiceV1.New())
+		}}
+	s := grpc.NewServer() //启动grpc服务
+	c.RegisterFunc(s)     //注册grpc登陆模块
+	lis, err := net.Listen("tcp", config.C.GC.Addr)
+	if err != nil {
+		log.Println("cannot listen")
+	}
+	//放到协程里面 防止阻塞主进程main
+	go func() {
+		err = s.Serve(lis)
+		if err != nil {
+			log.Println("server started error", err)
+			return
+		}
+	}()
+	return s
 }
