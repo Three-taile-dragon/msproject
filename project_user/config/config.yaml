@@ -11,7 +11,7 @@ zap:
   MaxBackups: 3
 redis:
   host: "localhost"
-  port: 6379
+  port: 6376
   password: ""
   db: 0
 grpc:
@@ -22,3 +22,9 @@ grpc:
 etcd:
   addrs:
     - "127.0.0.1:2379"
+mysql:
+  username: root
+  password: root
+  host: 127.0.0.1
+  port: 3309
+  db: msproject

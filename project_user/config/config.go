@@ -16,6 +16,7 @@ type Config struct {
 	SC    *ServerConfig
 	GC    *GrpcConfig
 	EC    *EtcdConfig
+	MC    *MysqlConfig
 }
 
 type ServerConfig struct {
@@ -32,6 +33,14 @@ type GrpcConfig struct {
 
 type EtcdConfig struct {
 	Addrs []string
+}
+
+type MysqlConfig struct {
+	Username string
+	Password string
+	Host     string
+	Port     int
+	Db       string
 }
 
 // InitConfig 读取配置文件
@@ -52,6 +61,7 @@ func InitConfig() *Config {
 	conf.InitZapLog()
 	conf.ReadGrpcConfig()
 	conf.ReadEtcdConfig()
+	conf.ReadMysqlConfig()
 	return conf
 }
 
@@ -83,6 +93,18 @@ func (c *Config) ReadEtcdConfig() {
 	}
 	ec.Addrs = addrs
 	c.EC = ec
+}
+
+// InitMysqlConfig 读取Mysql配置
+func (c *Config) ReadMysqlConfig() {
+	mc := &MysqlConfig{
+		Username: c.viper.GetString("mysql.username"),
+		Password: c.viper.GetString("mysql.password"),
+		Host:     c.viper.GetString("mysql.host"),
+		Port:     c.viper.GetInt("mysql.port"),
+		Db:       c.viper.GetString("mysql.db"),
+	}
+	c.MC = mc
 }
 func (c *Config) InitZapLog() {
 	//从配置中读取日志配置，初始化日志

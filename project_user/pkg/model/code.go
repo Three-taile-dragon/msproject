@@ -4,8 +4,16 @@ import (
 	"test.com/project_common/errs"
 )
 
-//定义状态码
-
+// 定义状态码
+// 错误码可以根据模块进行划分 这里 1010 代表 user模块
 var (
-	NoLegalMobile = errs.NewError(2001, "手机号不合法") //不合法的手机号
+	RedisError     = errs.NewError(99900, "redis错误")
+	DBError        = errs.NewError(99901, "数据库错误")
+	NoLegalMobile  = errs.NewError(10102001, "手机号不合法") //不合法的手机号
+	CaptchaError   = errs.NewError(10102002, "验证码错误")
+	CaptchaNoExist = errs.NewError(10102003, "验证码不存在或已过期")
+	EmailExist     = errs.NewError(10102004, "邮箱已存在")
+	AccountExist   = errs.NewError(10102005, "账号已存在")
+	NameExist      = errs.NewError(10102006, "用户名已存在")
+	MobileExist    = errs.NewError(10102007, "手机号已存在")
 )

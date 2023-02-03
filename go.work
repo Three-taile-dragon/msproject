@@ -3,6 +3,7 @@ go 1.18
 use (
 	./project_api
 	./project_common
+	./project_grpc
 	./project_user
 
 )

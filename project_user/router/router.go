@@ -8,6 +8,7 @@ import (
 	"net"
 	"test.com/project_common/discovery"
 	"test.com/project_common/logs"
+	"test.com/project_grpc/user/login"
 	"test.com/project_user/config"
 	loginServiceV1 "test.com/project_user/pkg/service/login.service.v1"
 )
@@ -58,7 +59,7 @@ func RegisterGrpc() *grpc.Server {
 	c := gRPCConfig{
 		Addr: config.C.GC.Addr,
 		RegisterFunc: func(g *grpc.Server) {
-			loginServiceV1.RegisterLoginServiceServer(g, loginServiceV1.New())
+			login.RegisterLoginServiceServer(g, loginServiceV1.New())
 		}}
 	s := grpc.NewServer() //启动grpc服务
 	c.RegisterFunc(s)     //注册grpc登陆模块
@@ -68,6 +69,7 @@ func RegisterGrpc() *grpc.Server {
 	}
 	//放到协程里面 防止阻塞主进程main
 	go func() {
+		log.Printf("grpc server started as %s \n", c.Addr)
 		err = s.Serve(lis)
 		if err != nil {
 			log.Println("server started error", err)

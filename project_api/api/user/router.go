@@ -22,4 +22,5 @@ func (*RouterUser) Router(r *gin.Engine) {
 	InitRpcUserClient()
 	h := New()
 	r.POST("/project/login/getCaptcha", h.getCaptcha)
+	r.POST("/project/login/register", h.register)
 }
