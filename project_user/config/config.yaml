@@ -34,3 +34,6 @@ jwt:
   refreshExp: 10080
   accessSecret: dragon
   refreshSecret: dragonsss
+aes:
+# 用于加密用户ID的aes key 24位
+  key: "awiugdhrwuiafaoaiuywfhbg"

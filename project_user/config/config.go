@@ -19,6 +19,7 @@ type Config struct {
 	EC    *EtcdConfig
 	MC    *MysqlConfig
 	JC    *JwtConfig
+	AC    *AesConfig
 }
 
 type ServerConfig struct {
@@ -50,6 +51,10 @@ type JwtConfig struct {
 	RefreshExp    time.Duration
 	AccessSecret  string
 	RefreshSecret string
+}
+
+type AesConfig struct {
+	AesKey string
 }
 
 // InitConfig 读取配置文件
@@ -150,4 +155,12 @@ func (c *Config) ReadJwtConfig() {
 		RefreshSecret: c.viper.GetString("jwt.refreshSecret"),
 	}
 	c.JC = jc
+}
+
+// ReadAesConfig 读取Aes配置
+func (c *Config) ReadAesConfig() {
+	ac := &AesConfig{
+		AesKey: c.viper.GetString("aes.key"),
+	}
+	c.AC = ac
 }

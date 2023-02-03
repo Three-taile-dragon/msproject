@@ -185,6 +185,7 @@ func (ls *LoginService) Login(ctx context.Context, req *login.LoginRequest) (*lo
 	}
 	memMessage := &login.MemberMessage{}
 	err = copier.Copy(memMessage, mem)
+	memMessage.Code, _ = encrypts.EncryptInt64(mem.Id, config.C.AC.AesKey) //加密用户ID
 	if err != nil {
 		zap.L().Error("登陆模块mem赋值错误", zap.Error(err))
 		return nil, errs.GrpcError(model.CopyError)
@@ -201,6 +202,9 @@ func (ls *LoginService) Login(ctx context.Context, req *login.LoginRequest) (*lo
 		zap.L().Error("登陆模块orgs赋值错误", zap.Error(err))
 		return nil, errs.GrpcError(model.CopyError)
 	}
+	for _, v := range orgsMessage {
+		v.Code, _ = encrypts.EncryptInt64(v.Id, config.C.AC.AesKey) //加密组织ID
+	}
 	//6.用jwt生成token
 	memIdStr := strconv.FormatInt(mem.Id, 10)
 	token := jwts.CreateToken(memIdStr, config.C.JC.AccessExp, config.C.JC.AccessSecret, config.C.JC.RefreshSecret, config.C.JC.RefreshExp)
@@ -210,12 +214,6 @@ func (ls *LoginService) Login(ctx context.Context, req *login.LoginRequest) (*lo
 		TokenType:      "bearer",
 		AccessTokenExp: token.AccessExp,
 	}
-	//tokenList := &login.TokenMessage{}
-	//err = copier.Copy(tokenList, token)
-	//if err != nil {
-	//	zap.L().Error("登陆模块token赋值错误", zap.Error(err))
-	//	return nil, errs.GrpcError(model.CopyError)
-	//}
 
 	//7.结果返回
 	return &login.LoginResponse{
