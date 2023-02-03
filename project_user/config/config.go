@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"test.com/project_common/logs"
+	"time"
 )
 
 var C = InitConfig()
@@ -17,6 +18,7 @@ type Config struct {
 	GC    *GrpcConfig
 	EC    *EtcdConfig
 	MC    *MysqlConfig
+	JC    *JwtConfig
 }
 
 type ServerConfig struct {
@@ -43,6 +45,13 @@ type MysqlConfig struct {
 	Db       string
 }
 
+type JwtConfig struct {
+	AccessExp     time.Duration
+	RefreshExp    time.Duration
+	AccessSecret  string
+	RefreshSecret string
+}
+
 // InitConfig 读取配置文件
 func InitConfig() *Config {
 	conf := &Config{viper: viper.New()}
@@ -62,6 +71,7 @@ func InitConfig() *Config {
 	conf.ReadGrpcConfig()
 	conf.ReadEtcdConfig()
 	conf.ReadMysqlConfig()
+	conf.ReadJwtConfig()
 	return conf
 }
 
@@ -129,4 +139,15 @@ func (c *Config) ReadRedisConfig() *redis.Options {
 		Password: c.viper.GetString("redis.password"),
 		DB:       c.viper.GetInt("redis.db"),
 	}
+}
+
+// ReadJwtConfig  读取jwt配置文件
+func (c *Config) ReadJwtConfig() {
+	jc := &JwtConfig{
+		AccessExp:     time.Duration(c.viper.GetInt64("jwt.accessExp")) * time.Minute,
+		RefreshExp:    time.Duration(c.viper.GetInt64("jwt.refreshExp")) * time.Minute,
+		AccessSecret:  c.viper.GetString("jwt.accessSecret"),
+		RefreshSecret: c.viper.GetString("jwt.refreshSecret"),
+	}
+	c.JC = jc
 }

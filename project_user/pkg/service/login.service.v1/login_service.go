@@ -5,10 +5,13 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/jinzhu/copier"
 	"go.uber.org/zap"
+	"strconv"
 	common "test.com/project_common"
 	"test.com/project_common/encrypts"
 	"test.com/project_common/errs"
+	"test.com/project_common/jwts"
 	"test.com/project_grpc/user/login"
+	"test.com/project_user/config"
 	"test.com/project_user/internal/dao"
 	"test.com/project_user/internal/dao/mysql"
 	"test.com/project_user/internal/data/member"
@@ -199,13 +202,25 @@ func (ls *LoginService) Login(ctx context.Context, req *login.LoginRequest) (*lo
 		return nil, errs.GrpcError(model.CopyError)
 	}
 	//6.用jwt生成token
-
-	//var tokenList *login.TokenMessage
+	memIdStr := strconv.FormatInt(mem.Id, 10)
+	token := jwts.CreateToken(memIdStr, config.C.JC.AccessExp, config.C.JC.AccessSecret, config.C.JC.RefreshSecret, config.C.JC.RefreshExp)
+	tokenList := &login.TokenMessage{
+		AccessToken:    token.AccessToken,
+		RefreshToken:   token.RefreshToken,
+		TokenType:      "bearer",
+		AccessTokenExp: token.AccessExp,
+	}
+	//tokenList := &login.TokenMessage{}
+	//err = copier.Copy(tokenList, token)
+	//if err != nil {
+	//	zap.L().Error("登陆模块token赋值错误", zap.Error(err))
+	//	return nil, errs.GrpcError(model.CopyError)
+	//}
 
 	//7.结果返回
 	return &login.LoginResponse{
 		Member:           memMessage,
 		OrganizationList: orgsMessage,
-		//TokenList: tokenList,
+		TokenList:        tokenList,
 	}, nil
 }
