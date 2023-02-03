@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"context"
+	"gorm.io/gorm"
 	"test.com/project_user/internal/data/member"
 	"test.com/project_user/internal/database"
 	"test.com/project_user/internal/database/gorms"
@@ -28,6 +29,12 @@ func (m MemberDao) GetMemberByEmail(ctx context.Context, email string) (bool, er
 	return count > 0, err
 }
 
+func (m MemberDao) GetMemberByAccountAndEmail(ctx context.Context, account string) (bool, error) {
+	var count int64
+	err := m.conn.Session(ctx).Model(&member.Member{}).Where("email=? or account=?", account, account).Count(&count).Error //数据库查询
+	return count > 0, err
+}
+
 func (m MemberDao) GetMemberByAccount(ctx context.Context, account string) (bool, error) {
 	var count int64
 	err := m.conn.Session(ctx).Model(&member.Member{}).Where("account=?", account).Count(&count).Error //数据库查询
@@ -44,4 +51,13 @@ func (m MemberDao) GetMemberByMobile(ctx context.Context, mobile string) (bool, 
 	var count int64
 	err := m.conn.Session(ctx).Model(&member.Member{}).Where("mobile=?", mobile).Count(&count).Error //数据库查询
 	return count > 0, err
+}
+func (m MemberDao) FindMember(ctx context.Context, account string, pwd string) (*member.Member, error) {
+	var mem *member.Member
+	err := m.conn.Session(ctx).Where("account=? and password=?", account, pwd).First(&mem).Error
+	if err == gorm.ErrRecordNotFound {
+		//未查询到对应的信息
+		return nil, nil
+	}
+	return mem, err
 }

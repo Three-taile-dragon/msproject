@@ -3,6 +3,7 @@ package login_service_v1
 import (
 	"context"
 	"github.com/go-redis/redis/v8"
+	"github.com/jinzhu/copier"
 	"go.uber.org/zap"
 	common "test.com/project_common"
 	"test.com/project_common/encrypts"
@@ -153,4 +154,58 @@ func (ls *LoginService) Register(ctx context.Context, req *login.RegisterRequest
 	//5.返回
 
 	return &login.RegisterResponse{}, err
+}
+
+func (ls *LoginService) Login(ctx context.Context, req *login.LoginRequest) (*login.LoginResponse, error) {
+	c := context.Background()
+	//1.传入参数
+	//2.校验参数
+	//3.校验用户名
+	//检验邮箱和用户名
+	exist, err := ls.memberRepo.GetMemberByAccountAndEmail(c, req.Account)
+	if err != nil {
+		zap.L().Error("数据库出错", zap.Error(err))
+		return nil, errs.GrpcError(model.DBError)
+	}
+	if !exist {
+		return nil, errs.GrpcError(model.AccountNoExist)
+	}
+	//4.去数据库查询 账号密码是否正确
+	pwd := encrypts.Md5(req.Password)
+	mem, err := ls.memberRepo.FindMember(c, req.Account, pwd)
+	if err != nil {
+		zap.L().Error("登陆模块member数据库查询出错", zap.Error(err))
+		return nil, errs.GrpcError(model.DBError)
+	}
+	if mem == nil {
+		return nil, errs.GrpcError(model.AccountAndPwdError)
+	}
+	memMessage := &login.MemberMessage{}
+	err = copier.Copy(memMessage, mem)
+	if err != nil {
+		zap.L().Error("登陆模块mem赋值错误", zap.Error(err))
+		return nil, errs.GrpcError(model.CopyError)
+	}
+	//5.根据用户id查组织
+	orgs, err := ls.organizationRepo.FindOrganizationByMemId(c, mem.Id)
+	if err != nil {
+		zap.L().Error("登陆模块organization数据库查询出错", zap.Error(err))
+		return nil, errs.GrpcError(model.OrganizationNoExist)
+	}
+	var orgsMessage []*login.OrganizationMessage
+	err = copier.Copy(&orgsMessage, orgs)
+	if err != nil {
+		zap.L().Error("登陆模块orgs赋值错误", zap.Error(err))
+		return nil, errs.GrpcError(model.CopyError)
+	}
+	//6.用jwt生成token
+
+	//var tokenList *login.TokenMessage
+
+	//7.结果返回
+	return &login.LoginResponse{
+		Member:           memMessage,
+		OrganizationList: orgsMessage,
+		//TokenList: tokenList,
+	}, nil
 }
