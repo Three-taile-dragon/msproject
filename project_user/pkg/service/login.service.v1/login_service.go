@@ -12,6 +12,8 @@ import (
 	"test.com/project_user/internal/dao/mysql"
 	"test.com/project_user/internal/data/member"
 	data "test.com/project_user/internal/data/organization"
+	"test.com/project_user/internal/database"
+	"test.com/project_user/internal/database/tran"
 	"test.com/project_user/internal/repo"
 	"test.com/project_user/pkg/model"
 	"test.com/project_user/util"
@@ -24,6 +26,7 @@ type LoginService struct {
 	cache            repo.Cache
 	memberRepo       repo.MemberRepo
 	organizationRepo repo.OrganizationRepo
+	transaction      tran.Transaction
 }
 
 func New() *LoginService {
@@ -31,6 +34,7 @@ func New() *LoginService {
 		cache:            dao.Rc,
 		memberRepo:       mysql.NewMemberDao(),
 		organizationRepo: mysql.NewOrganizationDao(),
+		transaction:      dao.NewTransaction(),
 	}
 }
 
@@ -123,25 +127,30 @@ func (ls *LoginService) Register(ctx context.Context, req *login.RegisterRequest
 		LastLoginTime: time.Now().UnixMilli(),
 		Status:        model.Normal,
 	}
-	err = ls.memberRepo.SaveMember(c, mem)
-	if err != nil {
-		zap.L().Error("注册模块member数据库存入出错", zap.Error(err))
-		return nil, err
-	}
-	//存入组织
-	org := &data.Organization{
-		Name:       mem.Name + "个人项目",
-		MemberId:   mem.Id,
-		CreateTime: time.Now().UnixMilli(),
-		Personal:   model.Personal,
-		Avatar:     "https://gimg2.baidu.com/image_search/src=http%3A%2F%2Fc-ssl.dtstatic.com%2Fuploads%2Fblog%2F202103%2F31%2F20210331160001_9a852.thumb.1000_0.jpg&refer=http%3A%2F%2Fc-ssl.dtstatic.com&app=2002&size=f9999,10000&q=a80&n=0&g=0n&fmt=auto?sec=1673017724&t=ced22fc74624e6940fd6a89a21d30cc5",
-	}
-	err = ls.organizationRepo.SaveOrganization(c, org)
-	if err != nil {
-		zap.L().Error("注册模块organization数据库存入失败", zap.Error(err))
-		return nil, model.DBError
-	}
+	//将存入部分使用事务包裹 使得可以回滚数据库操作
+	err = ls.transaction.Action(func(conn database.DbConn) error {
+		err = ls.memberRepo.SaveMember(conn, c, mem)
+		if err != nil {
+			zap.L().Error("注册模块member数据库存入出错", zap.Error(err))
+			return errs.GrpcError(model.DBError)
+		}
+		//存入组织
+		org := &data.Organization{
+			Name:       mem.Name + "个人项目",
+			MemberId:   mem.Id,
+			CreateTime: time.Now().UnixMilli(),
+			Personal:   model.Personal,
+			Avatar:     "https://gimg2.baidu.com/image_search/src=http%3A%2F%2Fc-ssl.dtstatic.com%2Fuploads%2Fblog%2F202103%2F31%2F20210331160001_9a852.thumb.1000_0.jpg&refer=http%3A%2F%2Fc-ssl.dtstatic.com&app=2002&size=f9999,10000&q=a80&n=0&g=0n&fmt=auto?sec=1673017724&t=ced22fc74624e6940fd6a89a21d30cc5",
+		}
+		err = ls.organizationRepo.SaveOrganization(conn, c, org)
+		if err != nil {
+			zap.L().Error("注册模块organization数据库存入失败", zap.Error(err))
+			return errs.GrpcError(model.DBError)
+		}
+		return nil
+	})
+
 	//5.返回
 
-	return &login.RegisterResponse{}, nil
+	return &login.RegisterResponse{}, err
 }

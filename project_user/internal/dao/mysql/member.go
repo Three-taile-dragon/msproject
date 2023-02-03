@@ -3,6 +3,7 @@ package mysql
 import (
 	"context"
 	"test.com/project_user/internal/data/member"
+	"test.com/project_user/internal/database"
 	"test.com/project_user/internal/database/gorms"
 )
 
@@ -16,8 +17,9 @@ func NewMemberDao() *MemberDao {
 	}
 }
 
-func (m *MemberDao) SaveMember(ctx context.Context, mem *member.Member) error {
-	return m.conn.Session(ctx).Create(mem).Error
+func (m *MemberDao) SaveMember(conn database.DbConn, ctx context.Context, mem *member.Member) error {
+	m.conn = conn.(*gorms.GormConn) //使用事务操作
+	return m.conn.Tx(ctx).Create(mem).Error
 }
 
 func (m MemberDao) GetMemberByEmail(ctx context.Context, email string) (bool, error) {

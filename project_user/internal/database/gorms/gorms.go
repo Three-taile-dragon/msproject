@@ -37,9 +37,30 @@ type GormConn struct {
 	db *gorm.DB
 }
 
+func (g *GormConn) Begin() {
+	g.db = GetDB().Begin()
+}
+
 func New() *GormConn {
+	return &GormConn{db: GetDB()}
+}
+
+func NewTran() *GormConn {
 	return &GormConn{db: GetDB()}
 }
 func (g *GormConn) Session(ctx context.Context) *gorm.DB {
 	return g.db.Session(&gorm.Session{Context: ctx})
+}
+
+// 事务
+
+func (g *GormConn) Rollback() {
+	g.db.Rollback()
+}
+func (g *GormConn) Commit() {
+	g.db.Commit()
+}
+
+func (g *GormConn) Tx(ctx context.Context) *gorm.DB {
+	return g.db.WithContext(ctx)
 }

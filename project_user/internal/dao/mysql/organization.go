@@ -3,6 +3,7 @@ package mysql
 import (
 	"context"
 	data "test.com/project_user/internal/data/organization"
+	"test.com/project_user/internal/database"
 	"test.com/project_user/internal/database/gorms"
 )
 
@@ -22,7 +23,7 @@ func (o *OrganizationDao) FindOrganizationByMemId(ctx context.Context, memId int
 	return orgs, err
 }
 
-func (o *OrganizationDao) SaveOrganization(ctx context.Context, org *data.Organization) error {
-	err := o.conn.Session(ctx).Create(org).Error
-	return err
+func (o *OrganizationDao) SaveOrganization(conn database.DbConn, ctx context.Context, org *data.Organization) error {
+	o.conn = conn.(*gorms.GormConn) //使用事务操作
+	return o.conn.Tx(ctx).Create(org).Error
 }
