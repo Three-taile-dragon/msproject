@@ -11,6 +11,7 @@ var (
 	RedisError          = errs.NewError(99900, "redis错误")
 	DBError             = errs.NewError(99901, "数据库错误")
 	CopyError           = errs.NewError(99902, "结构体复制错误")
+	NoLogin             = errs.NewError(99903, "用户未登陆")
 	NoLegalMobile       = errs.NewError(10102001, "手机号不合法") //不合法的手机号
 	CaptchaError        = errs.NewError(10102002, "验证码错误")
 	CaptchaNoExist      = errs.NewError(10102003, "验证码不存在或已过期")

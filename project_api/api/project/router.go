@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"log"
+	"test.com/project_api/api/midd"
 	"test.com/project_api/router"
 )
 
@@ -21,5 +22,10 @@ func (*RouterProject) Router(r *gin.Engine) {
 	//初始化grpc的客户端连接
 	InitRpcProjectClient()
 	h := New()
-	r.POST("/project/index", h.index)
+	//路由组
+	group := r.Group("/project/index")
+	//使用token认证中间件
+	group.Use(midd.TokenVerify())
+	group.POST("", h.index)
+
 }

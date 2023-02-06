@@ -6,6 +6,7 @@ import (
 	"github.com/jinzhu/copier"
 	"go.uber.org/zap"
 	"strconv"
+	"strings"
 	common "test.com/project_common"
 	"test.com/project_common/encrypts"
 	"test.com/project_common/errs"
@@ -221,4 +222,34 @@ func (ls *LoginService) Login(ctx context.Context, req *login.LoginRequest) (*lo
 		OrganizationList: orgsMessage,
 		TokenList:        tokenList,
 	}, nil
+}
+
+// TokenVerify token验证
+func (ls *LoginService) TokenVerify(ctx context.Context, msg *login.TokenRequest) (*login.LoginResponse, error) {
+	c := context.Background()
+	token := msg.Token
+	if strings.Contains(token, "bearer") {
+		token = strings.ReplaceAll(token, "bearer ", "")
+	}
+	parseToken, err := jwts.ParseToken(token, config.C.JC.AccessSecret)
+	if err != nil {
+		zap.L().Error("Token解析失败", zap.Error(err))
+		return nil, errs.GrpcError(model.NoLogin)
+	}
+	//数据库查询 优化点 登陆之后应该把用户信息缓存起来
+	id, _ := strconv.ParseInt(parseToken, 10, 64)
+	memberById, err := ls.memberRepo.FindMemberById(c, id)
+	if err != nil {
+		zap.L().Error("Token验证模块member数据库查询出错", zap.Error(err))
+		return nil, errs.GrpcError(model.DBError)
+	}
+	memMessage := &login.MemberMessage{}
+	err = copier.Copy(&memMessage, memberById)
+	if err != nil {
+		zap.L().Error("Token验证模块memMessage赋值错误", zap.Error(err))
+		return nil, errs.GrpcError(model.CopyError)
+	}
+	memMessage.Code, _ = encrypts.EncryptInt64(memberById.Id, config.C.AC.AesKey) //加密用户ID
+
+	return &login.LoginResponse{Member: memMessage}, nil
 }

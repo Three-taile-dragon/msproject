@@ -65,8 +65,13 @@ message TokenMessage{
   string tokenType = 3;
   int64 accessTokenExp = 4;
 }
+
+message TokenRequest {
+  string token =1;
+}
 service LoginService {
   rpc GetCaptcha(CaptchaRequest) returns (CaptchaResponse) {}
   rpc Register(RegisterRequest) returns (RegisterResponse) {}
   rpc Login(LoginRequest) returns (LoginResponse) {}
+  rpc TokenVerify(TokenRequest) returns (LoginResponse){}
 }
