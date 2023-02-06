@@ -1,0 +1,17 @@
+//grpc 登陆服务配置文件
+
+syntax = "proto3";
+package project.service.v1;
+option go_package = "project_project/pkg/service/project.service.v1";
+
+message IndexRequest{
+
+}
+
+message  IndexResponse{
+
+}
+
+service ProjectService {
+  rpc Index(IndexRequest) returns (IndexResponse) {}
+}
