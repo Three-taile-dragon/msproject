@@ -184,12 +184,12 @@ func (ls *LoginService) Login(ctx context.Context, req *login.LoginRequest) (*lo
 		return nil, errs.GrpcError(model.AccountAndPwdError)
 	}
 	memMessage := &login.MemberMessage{}
-	err = copier.Copy(memMessage, mem)
-	memMessage.Code, _ = encrypts.EncryptInt64(mem.Id, config.C.AC.AesKey) //加密用户ID
+	err = copier.Copy(&memMessage, mem)
 	if err != nil {
-		zap.L().Error("登陆模块mem赋值错误", zap.Error(err))
+		zap.L().Error("登陆模块memMessage赋值错误", zap.Error(err))
 		return nil, errs.GrpcError(model.CopyError)
 	}
+	memMessage.Code, _ = encrypts.EncryptInt64(mem.Id, config.C.AC.AesKey) //加密用户ID
 	//5.根据用户id查组织
 	orgs, err := ls.organizationRepo.FindOrganizationByMemId(c, mem.Id)
 	if err != nil {

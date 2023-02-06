@@ -77,6 +77,7 @@ func InitConfig() *Config {
 	conf.ReadEtcdConfig()
 	conf.ReadMysqlConfig()
 	conf.ReadJwtConfig()
+	conf.ReadAesConfig()
 	return conf
 }
 

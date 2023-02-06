@@ -1,0 +1,25 @@
+package project
+
+import (
+	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
+	"log"
+	"test.com/project_api/router"
+)
+
+type RouterProject struct {
+}
+
+func init() {
+	log.Println("init project router")
+	zap.L().Info("init project router")
+	ru := &RouterProject{}
+	router.Register(ru)
+}
+
+func (*RouterProject) Router(r *gin.Engine) {
+	//初始化grpc的客户端连接
+	InitRpcProjectClient()
+	h := New()
+	r.POST("/project/index", h.index)
+}
