@@ -27,5 +27,9 @@ func (*RouterProject) Router(r *gin.Engine) {
 	//使用token认证中间件
 	group.Use(midd.TokenVerify())
 	group.POST("", h.index)
-
+	//路由组
+	group1 := r.Group("/project/project")
+	//使用token认证中间件
+	group1.Use(midd.TokenVerify())
+	group1.POST("/selfList", h.myProjectList)
 }
