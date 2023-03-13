@@ -5,6 +5,7 @@ import (
 	"go.uber.org/zap"
 	"log"
 	"test.com/project_api/api/midd"
+	"test.com/project_api/api/rpc"
 	"test.com/project_api/router"
 )
 
@@ -20,7 +21,7 @@ func init() {
 
 func (*RouterProject) Router(r *gin.Engine) {
 	//初始化grpc的客户端连接
-	InitRpcProjectClient()
+	rpc.InitRpcProjectClient()
 	h := New()
 	//路由组
 	group := r.Group("/project/index")

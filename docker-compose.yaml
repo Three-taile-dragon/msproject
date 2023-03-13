@@ -44,7 +44,7 @@ services:
       - ${ETCD_DIR}/data:/bitnami/etcd/data
     ports:
       - ${ETCD_PORT}:2379
-      - 2380:2380
+      - 12380:2380
 #  Project_User:
 #    container_name: project_user
 #    image: project_user:latest

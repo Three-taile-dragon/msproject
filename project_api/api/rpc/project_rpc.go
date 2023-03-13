@@ -1,4 +1,4 @@
-package user
+package rpc
 
 import (
 	"google.golang.org/grpc"
@@ -8,20 +8,20 @@ import (
 	"test.com/project_api/config"
 	"test.com/project_common/discovery"
 	"test.com/project_common/logs"
-	login "test.com/project_grpc/user/login"
+	"test.com/project_grpc/project"
 )
 
-var LoginServiceClient login.LoginServiceClient
+var ProjectServiceClient project.ProjectServiceClient
 
 // InitRpcUserClient 初始化grpc客户段连接
-func InitRpcUserClient() {
+func InitRpcProjectClient() {
 	//grpc 连接 etcd
 	etcdRegister := discovery.NewResolver(config.C.EC.Addrs, logs.LG)
 	resolver.Register(etcdRegister)
 	// etcd:/// + grpc服务名
-	conn, err := grpc.Dial("etcd:///user", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.Dial("etcd:///project", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
-	LoginServiceClient = login.NewLoginServiceClient(conn)
+	ProjectServiceClient = project.NewProjectServiceClient(conn)
 }

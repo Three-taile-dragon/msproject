@@ -69,9 +69,18 @@ message TokenMessage{
 message TokenRequest {
   string token =1;
 }
+
+message UserMessage {
+  int64 memId =1;
+}
+
+message OrgListResponse {
+  repeated OrganizationMessage organizationList = 1;
+}
 service LoginService {
   rpc GetCaptcha(CaptchaRequest) returns (CaptchaResponse) {}
   rpc Register(RegisterRequest) returns (RegisterResponse) {}
   rpc Login(LoginRequest) returns (LoginResponse) {}
   rpc TokenVerify(TokenRequest) returns (LoginResponse){}
+  rpc MyOrgList(UserMessage) returns (OrgListResponse) {}
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/jinzhu/copier"
 	"go.uber.org/zap"
 	"net/http"
+	"test.com/project_api/api/rpc"
 	"test.com/project_api/pkg/model/user"
 	common "test.com/project_common"
 	"test.com/project_common/errs"
@@ -30,7 +31,7 @@ func (*HandleUser) getCaptcha(ctx *gin.Context) {
 	c, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	// 通过grpc调用验证码生成函数
-	rsp, err := LoginServiceClient.GetCaptcha(c, &login.CaptchaRequest{Mobile: mobile})
+	rsp, err := rpc.LoginServiceClient.GetCaptcha(c, &login.CaptchaRequest{Mobile: mobile})
 	// 结果返回
 	if err != nil {
 		code, msg := errs.ParseGrpcError(err) //解析grpc错误信息
@@ -66,7 +67,7 @@ func (u *HandleUser) register(c *gin.Context) {
 		c.JSON(http.StatusOK, result.Fail(http.StatusBadRequest, "系统内部错误"))
 		return
 	}
-	_, err = LoginServiceClient.Register(ctx, msg)
+	_, err = rpc.LoginServiceClient.Register(ctx, msg)
 	if err != nil {
 		code, msg := errs.ParseGrpcError(err) //解析grpc错误信息
 		c.JSON(http.StatusOK, result.Fail(code, msg))
@@ -101,7 +102,7 @@ func (u *HandleUser) login(c *gin.Context) {
 		c.JSON(http.StatusOK, result.Fail(http.StatusBadRequest, "系统内部错误"))
 		return
 	}
-	loginRsp, err := LoginServiceClient.Login(ctx, msg)
+	loginRsp, err := rpc.LoginServiceClient.Login(ctx, msg)
 	if err != nil {
 		code, msg := errs.ParseGrpcError(err) //解析grpc错误信息
 		c.JSON(http.StatusOK, result.Fail(code, msg))
@@ -118,4 +119,27 @@ func (u *HandleUser) login(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, result.Success(rsp))
 	//4.结果返回
+}
+
+func (u *HandleUser) myOrgList(c *gin.Context) {
+	result := &common.Result{}
+	memberIdStr, _ := c.Get("memberId")
+	memberId := memberIdStr.(int64) //转换
+	list, err := rpc.LoginServiceClient.MyOrgList(context.Background(), &login.UserMessage{MemId: memberId})
+	if err != nil {
+		code, msg := errs.ParseGrpcError(err)
+		c.JSON(http.StatusOK, result.Fail(code, msg))
+		return
+	}
+	if list.OrganizationList == nil {
+		c.JSON(http.StatusOK, result.Success([]*user.OrganizationList{}))
+		return
+	}
+	var orgs []*user.OrganizationList
+	err = copier.Copy(&orgs, list.OrganizationList)
+	if err != nil {
+		zap.L().Error("用户模块组织列表赋值错误", zap.Error(err))
+		c.JSON(http.StatusOK, result.Fail(errs.ParseGrpcError(errs.GrpcError(model.SystemError))))
+	}
+	c.JSON(http.StatusOK, result.Success(orgs))
 }

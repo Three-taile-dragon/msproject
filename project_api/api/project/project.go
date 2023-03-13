@@ -6,6 +6,7 @@ import (
 	"github.com/jinzhu/copier"
 	"go.uber.org/zap"
 	"net/http"
+	"test.com/project_api/api/rpc"
 	"test.com/project_api/pkg/model"
 	pro "test.com/project_api/pkg/model/project"
 	common "test.com/project_common"
@@ -25,7 +26,7 @@ func (p *HandleProject) index(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	msg := &project.IndexRequest{}
-	rsp, err := ProjectServiceClient.Index(ctx, msg)
+	rsp, err := rpc.ProjectServiceClient.Index(ctx, msg)
 	if err != nil {
 		code, msg := errs.ParseGrpcError(err)
 		c.JSON(http.StatusOK, result.Fail(code, msg))
@@ -44,7 +45,7 @@ func (p *HandleProject) myProjectList(c *gin.Context) {
 	page := &model.Page{}
 	page.Bind(c)
 	msg := &project.ProjectRpcMessage{MemberId: memberId, Page: page.Page, PageSize: page.PageSize}
-	myProjectResponse, err := ProjectServiceClient.FindProjectByMemId(ctx, msg)
+	myProjectResponse, err := rpc.ProjectServiceClient.FindProjectByMemId(ctx, msg)
 	if err != nil {
 		code, msg := errs.ParseGrpcError(err)
 		c.JSON(http.StatusOK, result.Fail(code, msg))
