@@ -6,11 +6,13 @@ import (
 	"go.uber.org/zap"
 	"test.com/project_common/encrypts"
 	"test.com/project_common/errs"
+	"test.com/project_common/tms"
 	"test.com/project_grpc/project"
 	"test.com/project_project/config"
 	"test.com/project_project/internal/dao"
 	"test.com/project_project/internal/dao/mysql"
 	"test.com/project_project/internal/data/menu"
+	pro "test.com/project_project/internal/data/project"
 	"test.com/project_project/internal/database/tran"
 	"test.com/project_project/internal/repo"
 	"test.com/project_project/pkg/model"
@@ -54,7 +56,23 @@ func (p *ProjectService) FindProjectByMemId(ctx context.Context, req *project.Pr
 	memberId := req.MemberId
 	page := req.Page
 	pageSize := req.PageSize
-	pms, total, err := p.projectRepo.FindProjectByMemId(ctx, memberId, page, pageSize)
+	var pms []*pro.ProjectAndMember
+	var total int64
+	var err error
+	if req.SelectBy == "" || req.SelectBy == "my" {
+		pms, total, err = p.projectRepo.FindProjectByMemId(ctx, memberId, "", page, pageSize)
+	}
+	if req.SelectBy == "archive" {
+		pms, total, err = p.projectRepo.FindProjectByMemId(ctx, memberId, "and archive = 1", page, pageSize)
+	}
+	if req.SelectBy == "deleted" {
+		pms, total, err = p.projectRepo.FindProjectByMemId(ctx, memberId, "and deleted = 1", page, pageSize)
+	}
+	if req.SelectBy == "collect" {
+		//跨表查询
+		pms, total, err = p.projectRepo.FindCollectProjectByMemId(ctx, memberId, page, pageSize)
+	}
+
 	if err != nil {
 		zap.L().Error("首页模块project查找失败", zap.Error(err))
 		return nil, errs.GrpcError(model.DBError)
@@ -72,6 +90,13 @@ func (p *ProjectService) FindProjectByMemId(ctx context.Context, req *project.Pr
 	}
 	for _, v := range pmm {
 		v.Code, _ = encrypts.EncryptInt64(v.Id, config.C.AC.AesKey)
+		pam := pro.ToMap(pms)[v.Id]
+		v.AccessControlType = pam.GetAccessControlType()
+		v.OrganizationCode, _ = encrypts.EncryptInt64(pam.OrganizationCode, config.C.AC.AesKey)
+		v.JoinTime = tms.FormatByMill(pam.JoinTime)
+		v.OwnerName = req.MemberName
+		v.Order = int32(pam.Sort)
+		v.CreateTime = tms.FormatByMill(pam.CreateTime)
 	}
 	return &project.MyProjectResponse{Pm: pmm, Total: total}, nil
 }

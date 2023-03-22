@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"test.com/project_api/api/rpc"
 	"test.com/project_api/pkg/model"
+	"test.com/project_api/pkg/model/menu"
 	pro "test.com/project_api/pkg/model/project"
 	common "test.com/project_common"
 	"test.com/project_common/errs"
@@ -31,7 +32,14 @@ func (p *HandleProject) index(c *gin.Context) {
 		code, msg := errs.ParseGrpcError(err)
 		c.JSON(http.StatusOK, result.Fail(code, msg))
 	}
-	c.JSON(http.StatusOK, result.Success(rsp.Menus))
+	menus := rsp.Menus
+	var ms []*menu.Menu
+	err = copier.Copy(&ms, menus)
+	if err != nil {
+		zap.L().Error("api模块menu复制失败", zap.Error(err))
+		c.JSON(http.StatusOK, result.Fail(00000, "系统内部错误"))
+	}
+	c.JSON(http.StatusOK, result.Success(ms))
 }
 
 func (p *HandleProject) myProjectList(c *gin.Context) {
@@ -39,29 +47,38 @@ func (p *HandleProject) myProjectList(c *gin.Context) {
 	//1. 获取参数
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	memberIdStr, _ := c.Get("memberId")
-	memberId := memberIdStr.(int64) //转换
+	memberId := c.GetInt64("memberId")
+	memberName := c.GetString("memberName")
+
+	//memberId := memberIdStr.(int64) //转换
 	//分页
 	page := &model.Page{}
 	page.Bind(c)
-	msg := &project.ProjectRpcMessage{MemberId: memberId, Page: page.Page, PageSize: page.PageSize}
+	selectBy := c.PostForm("selectBy")
+	msg := &project.ProjectRpcMessage{
+		MemberId:   memberId,
+		MemberName: memberName,
+		SelectBy:   selectBy,
+		Page:       page.Page,
+		PageSize:   page.PageSize}
 	myProjectResponse, err := rpc.ProjectServiceClient.FindProjectByMemId(ctx, msg)
 	if err != nil {
 		code, msg := errs.ParseGrpcError(err)
 		c.JSON(http.StatusOK, result.Fail(code, msg))
 	}
-	//设定默认值
-	if myProjectResponse.Pm == nil {
-		myProjectResponse.Pm = []*project.ProjectMessage{}
-	}
-	var pms []*pro.ProjectAndMember
+
+	var pms []*pro.ProAndMember
 	err = copier.Copy(&pms, myProjectResponse)
 	if err != nil {
 		zap.L().Error("项目列表模块返回数据复制出错", zap.Error(err))
 		c.JSON(http.StatusOK, result.Fail(502, "系统内部错误"))
 	}
+	//设定默认值
+	if pms == nil {
+		pms = []*pro.ProAndMember{}
+	}
 	c.JSON(http.StatusOK, result.Success(gin.H{
-		"list":  pms,
+		"list":  pms, //不能返回 null nil, 空的话要返回[] 不然前端没法判断
 		"total": myProjectResponse.Total,
 	}))
 }

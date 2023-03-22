@@ -19,6 +19,6 @@ func NewMenuDao() *MenuDao {
 // FindMenus 实现菜单查询
 func (m *MenuDao) FindMenus(ctx context.Context) (pms []*menu.ProjectMenu, err error) {
 	session := m.conn.Session(ctx)
-	err = session.Find(&pms).Error
+	err = session.Order("pid,sort asc, id asc").Find(&pms).Error
 	return
 }

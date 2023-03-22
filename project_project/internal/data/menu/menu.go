@@ -28,7 +28,10 @@ func (*ProjectMenu) TableName() string {
 
 type ProjectMenuChild struct {
 	ProjectMenu
-	Children []*ProjectMenuChild
+	StatusText string
+	InnerText  string
+	FullUrl    string
+	Children   []*ProjectMenuChild
 }
 
 func CovertChild(pms []*ProjectMenu) []*ProjectMenuChild {
@@ -37,6 +40,11 @@ func CovertChild(pms []*ProjectMenu) []*ProjectMenuChild {
 	if err != nil {
 		zap.L().Error("ProjectMenu模块结构体赋值错误", zap.Error(err))
 		return nil
+	}
+	for _, v := range pmcs {
+		v.StatusText = getStatus(v.Status)
+		v.InnerText = getInnerText(v.IsInner)
+		v.FullUrl = getFullUrl(v.Url, v.Params, v.Values)
 	}
 	var childPmcs []*ProjectMenuChild
 	//递归
@@ -68,4 +76,31 @@ func toChild(childPmcs []*ProjectMenuChild, pmcs []*ProjectMenuChild) {
 		}
 		toChild(pmc.Children, pmcs)
 	}
+}
+
+func getFullUrl(url string, params string, values string) string {
+	if (params != "" && values != "") || values != "" {
+		return url + "/" + values
+	}
+	return url
+}
+
+func getInnerText(inner int) string {
+	if inner == 0 {
+		return "导航"
+	}
+	if inner == 1 {
+		return "内页"
+	}
+	return ""
+}
+
+func getStatus(status int) string {
+	if status == 0 {
+		return "禁用"
+	}
+	if status == 1 {
+		return "使用中"
+	}
+	return ""
 }

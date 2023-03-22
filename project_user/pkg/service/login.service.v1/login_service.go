@@ -11,6 +11,7 @@ import (
 	"test.com/project_common/encrypts"
 	"test.com/project_common/errs"
 	"test.com/project_common/jwts"
+	"test.com/project_common/tms"
 	"test.com/project_grpc/user/login"
 	"test.com/project_user/config"
 	"test.com/project_user/internal/dao"
@@ -191,6 +192,8 @@ func (ls *LoginService) Login(ctx context.Context, req *login.LoginRequest) (*lo
 		return nil, errs.GrpcError(model.CopyError)
 	}
 	memMessage.Code, _ = encrypts.EncryptInt64(mem.Id, config.C.AC.AesKey) //加密用户ID
+	memMessage.LastLoginTime = tms.FormatByMill(mem.LastLoginTime)
+	memMessage.CreateTime = tms.FormatByMill(mem.CreateTime)
 	//5.根据用户id查组织
 	orgs, err := ls.organizationRepo.FindOrganizationByMemId(c, mem.Id)
 	if err != nil {
@@ -205,6 +208,9 @@ func (ls *LoginService) Login(ctx context.Context, req *login.LoginRequest) (*lo
 	}
 	for _, v := range orgsMessage {
 		v.Code, _ = encrypts.EncryptInt64(v.Id, config.C.AC.AesKey) //加密组织ID
+		v.OwnerCode = memMessage.Code
+		organization := data.ToMap(orgs)[v.Id]
+		v.CreateTime = tms.FormatByMill(organization.CreateTime)
 	}
 	//6.用jwt生成token
 	memIdStr := strconv.FormatInt(mem.Id, 10)
