@@ -5,6 +5,8 @@ import (
 	"crypto/cipher"
 	"crypto/md5"
 	"encoding/hex"
+	"errors"
+	"fmt"
 	"io"
 	"strconv"
 )
@@ -24,32 +26,61 @@ func EncryptInt64(id int64, keyText string) (cipherStr string, err error) {
 	return Encrypt(idStr, keyText)
 }
 func Encrypt(plainText string, keyText string) (cipherStr string, err error) {
-	// 转换成字节数据, 方便加密
+	if plainText == "" || keyText == "" {
+		return "", errors.New("plainText and keyText should not be empty")
+	}
+
 	plainByte := []byte(plainText)
 	keyByte := []byte(keyText)
-	// 创建加密算法aes
+
 	c, err := aes.NewCipher(keyByte)
 	if err != nil {
 		return "", err
 	}
-	//加密字符串
+
 	cfb := cipher.NewCFBEncrypter(c, commonIV)
 	cipherByte := make([]byte, len(plainByte))
 	cfb.XORKeyStream(cipherByte, plainByte)
 	cipherStr = hex.EncodeToString(cipherByte)
 	return
 }
+
+//func Decrypt(cipherStr string, keyText string) (plainText string, err error) {
+//	// 转换成字节数据, 方便加密
+//	keyByte := []byte(keyText)
+//	// 创建加密算法aes
+//	c, err := aes.NewCipher(keyByte)
+//	if err != nil {
+//		return "", err
+//	}
+//	// 解密字符串
+//	cfbdec := cipher.NewCFBDecrypter(c, commonIV)
+//	cipherByte, _ := hex.DecodeString(cipherStr)
+//	plainByte := make([]byte, len(cipherByte))
+//	cfbdec.XORKeyStream(plainByte, cipherByte)
+//	plainText = string(plainByte)
+//	return
+//}
+
 func Decrypt(cipherStr string, keyText string) (plainText string, err error) {
-	// 转换成字节数据, 方便加密
+	if cipherStr == "" || keyText == "" {
+		return "", errors.New("cipherStr and keyText should not be empty")
+	}
+
 	keyByte := []byte(keyText)
-	// 创建加密算法aes
+
 	c, err := aes.NewCipher(keyByte)
 	if err != nil {
 		return "", err
 	}
-	// 解密字符串
+
 	cfbdec := cipher.NewCFBDecrypter(c, commonIV)
-	cipherByte, _ := hex.DecodeString(cipherStr)
+
+	cipherByte, err := hex.DecodeString(cipherStr)
+	if err != nil {
+		return "", fmt.Errorf("failed to decode cipherStr: %v", err)
+	}
+
 	plainByte := make([]byte, len(cipherByte))
 	cfbdec.XORKeyStream(plainByte, cipherByte)
 	plainText = string(plainByte)

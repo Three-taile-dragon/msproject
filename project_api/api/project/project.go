@@ -6,6 +6,7 @@ import (
 	"github.com/jinzhu/copier"
 	"go.uber.org/zap"
 	"net/http"
+	"strconv"
 	"test.com/project_api/api/rpc"
 	"test.com/project_api/pkg/model"
 	"test.com/project_api/pkg/model/menu"
@@ -49,18 +50,20 @@ func (p *HandleProject) myProjectList(c *gin.Context) {
 	defer cancel()
 	memberId := c.GetInt64("memberId")
 	memberName := c.GetString("memberName")
-
+	organizationCode := c.GetString("organizationCode")
 	//memberId := memberIdStr.(int64) //转换
 	//分页
 	page := &model.Page{}
 	page.Bind(c)
 	selectBy := c.PostForm("selectBy")
 	msg := &project.ProjectRpcMessage{
-		MemberId:   memberId,
-		MemberName: memberName,
-		SelectBy:   selectBy,
-		Page:       page.Page,
-		PageSize:   page.PageSize}
+		MemberId:         memberId,
+		MemberName:       memberName,
+		SelectBy:         selectBy,
+		Page:             page.Page,
+		PageSize:         page.PageSize,
+		OrganizationCode: organizationCode,
+	}
 	myProjectResponse, err := rpc.ProjectServiceClient.FindProjectByMemId(ctx, msg)
 	if err != nil {
 		code, msg := errs.ParseGrpcError(err)
@@ -80,5 +83,55 @@ func (p *HandleProject) myProjectList(c *gin.Context) {
 	c.JSON(http.StatusOK, result.Success(gin.H{
 		"list":  pms, //不能返回 null nil, 空的话要返回[] 不然前端没法判断
 		"total": myProjectResponse.Total,
+	}))
+}
+
+func (p *HandleProject) projectTemplate(c *gin.Context) {
+	result := &common.Result{}
+	//1. 获取参数
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	memberId := c.GetInt64("memberId")
+	memberName := c.GetString("memberName")
+	organizationCode := c.GetString("organizationCode")
+	//memberId := memberIdStr.(int64) //转换
+	//分页
+	page := &model.Page{}
+	page.Bind(c)
+	viewTypeStr := c.PostForm("viewType")
+	viewType, _ := strconv.ParseInt(viewTypeStr, 10, 64)
+	msg := &project.ProjectRpcMessage{
+		MemberId:         memberId,
+		MemberName:       memberName,
+		ViewType:         int32(viewType),
+		Page:             page.Page,
+		PageSize:         page.PageSize,
+		OrganizationCode: organizationCode,
+	}
+	templateResponse, err := rpc.ProjectServiceClient.FindProjectTemplate(ctx, msg)
+	if err != nil {
+		code, msg := errs.ParseGrpcError(err)
+		c.JSON(http.StatusOK, result.Fail(code, msg))
+	}
+
+	var pms []*pro.ProjectTemplate
+	err = copier.Copy(&pms, templateResponse.Ptm)
+	if err != nil {
+		zap.L().Error("项目模板模块返回数据复制出错", zap.Error(err))
+		c.JSON(http.StatusOK, result.Fail(502, "系统内部错误"))
+	}
+	//设定默认值
+	if pms == nil {
+		pms = []*pro.ProjectTemplate{}
+	}
+	//设定默认值	避免出现返回值为nil
+	for _, v := range pms {
+		if v.TaskStages == nil {
+			v.TaskStages = []*pro.TaskStagesOnlyName{}
+		}
+	}
+	c.JSON(http.StatusOK, result.Success(gin.H{
+		"list":  pms, //不能返回 null nil, 空的话要返回[] 不然前端没法判断
+		"total": templateResponse.Total,
 	}))
 }

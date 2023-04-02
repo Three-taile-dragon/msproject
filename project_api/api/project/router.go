@@ -24,14 +24,11 @@ func (*RouterProject) Router(r *gin.Engine) {
 	rpc.InitRpcProjectClient()
 	h := New()
 	//路由组
-	group := r.Group("/project/index")
+	group := r.Group("/project")
 	//使用token认证中间件
 	group.Use(midd.TokenVerify())
-	group.POST("", h.index)
-	//路由组
-	group1 := r.Group("/project/project")
-	//使用token认证中间件
-	group1.Use(midd.TokenVerify())
-	group1.POST("/selfList", h.myProjectList)
-	group1.POST("", h.myProjectList)
+	group.POST("/index", h.index)
+	group.POST("/project/selfList", h.myProjectList)
+	group.POST("/project", h.myProjectList)
+	group.POST("/project_template", h.projectTemplate)
 }
