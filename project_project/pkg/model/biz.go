@@ -2,7 +2,26 @@ package model
 
 //存放业务逻辑 状态码
 
-var (
+const (
 	Normal         = 1
 	Personal int32 = 1
+)
+
+const (
+	NoDeleted = iota
+	Deleted
+)
+const (
+	NoArchive = iota
+	Archive
+)
+const (
+	Open = iota
+	Private
+	Custom
+)
+
+const (
+	Default = "default"
+	Simple  = "simple"
 )

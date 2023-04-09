@@ -71,7 +71,7 @@ func (p *HandleProject) myProjectList(c *gin.Context) {
 	}
 
 	var pms []*pro.ProAndMember
-	err = copier.Copy(&pms, myProjectResponse)
+	err = copier.Copy(&pms, myProjectResponse.Pm)
 	if err != nil {
 		zap.L().Error("项目列表模块返回数据复制出错", zap.Error(err))
 		c.JSON(http.StatusOK, result.Fail(502, "系统内部错误"))
@@ -134,4 +134,41 @@ func (p *HandleProject) projectTemplate(c *gin.Context) {
 		"list":  pms, //不能返回 null nil, 空的话要返回[] 不然前端没法判断
 		"total": templateResponse.Total,
 	}))
+}
+
+func (p *HandleProject) projectSave(c *gin.Context) {
+	result := &common.Result{}
+	//1. 获取参数
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	memberId := c.GetInt64("memberId")
+	organizationCode := c.GetString("organizationCode")
+	var req *pro.SaveProjectRequest
+	err := c.ShouldBind(&req)
+	if err != nil {
+		zap.L().Error("项目创建模块_模型绑定失败", zap.Error(err))
+		c.JSON(http.StatusOK, result.Fail(502, "系统内部错误"))
+	}
+	msg := &project.ProjectRpcMessage{
+		MemberId:         memberId,
+		OrganizationCode: organizationCode,
+		TemplateCode:     req.TemplateCode,
+		Name:             req.Name,
+		Id:               int64(req.Id),
+		Description:      req.Description,
+	}
+	saveProject, err := rpc.ProjectServiceClient.SaveProject(ctx, msg)
+	if err != nil {
+		code, msg := errs.ParseGrpcError(err)
+		c.JSON(http.StatusOK, result.Fail(code, msg))
+	}
+	var rsp *pro.SaveProject
+	copier.Copy(&rsp, saveProject)
+	//err = copier.Copy(&rsp, saveProject)
+	//if err != nil {
+	//	zap.L().Error("项目创建模块返回数据复制出错", zap.Error(err))
+	//	c.JSON(http.StatusOK, result.Fail(502, "系统内部错误"))
+	//}
+	c.JSON(http.StatusOK, result.Success(rsp))
+
 }

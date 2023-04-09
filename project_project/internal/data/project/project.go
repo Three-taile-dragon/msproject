@@ -16,7 +16,7 @@ type Project struct {
 	WhiteList          string
 	Sort               int
 	Deleted            int
-	TemplateCode       string
+	TemplateCode       int
 	Schedule           float64
 	CreateTime         int64
 	OrganizationCode   int64
@@ -45,6 +45,10 @@ type ProjectMember struct {
 	JoinTime    int64
 	IsOwner     int64
 	Authorize   string
+}
+
+func (*ProjectMember) TableName() string {
+	return "ms_project_member"
 }
 
 func (*ProjectAndMember) TableName() string {
@@ -124,9 +128,9 @@ type ProjectTemplateAll struct {
 
 // Convert 返回时加密ID
 func (pt ProjectTemplate) Convert(taskStages []*task.TaskStagesOnlyName) *ProjectTemplateAll {
-	organizationCode, _ := encrypts.EncryptInt64(pt.OrganizationCode, model.AesKey)
-	memberCode, _ := encrypts.EncryptInt64(pt.MemberCode, model.AesKey)
-	code, _ := encrypts.EncryptInt64(int64(pt.Id), model.AesKey)
+	organizationCode, _ := encrypts.EncryptInt64(pt.OrganizationCode, model.AESKey)
+	memberCode, _ := encrypts.EncryptInt64(pt.MemberCode, model.AESKey)
+	code, _ := encrypts.EncryptInt64(int64(pt.Id), model.AESKey)
 	pta := &ProjectTemplateAll{
 		Id:               pt.Id,
 		Name:             pt.Name,

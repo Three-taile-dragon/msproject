@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"test.com/project_project/internal/data/project"
+	"test.com/project_project/internal/database"
 	"test.com/project_project/internal/database/gorms"
 )
 
@@ -17,7 +18,7 @@ func NewProjectDao() *ProjectDao {
 	}
 }
 
-func (p ProjectDao) FindProjectByMemId(ctx context.Context, memId int64, condition string, page int64, size int64) ([]*project.ProjectAndMember, int64, error) {
+func (p *ProjectDao) FindProjectByMemId(ctx context.Context, memId int64, condition string, page int64, size int64) ([]*project.ProjectAndMember, int64, error) {
 	var pms []*project.ProjectAndMember
 	session := p.conn.Session(ctx)
 	index := (page - 1) * size
@@ -42,4 +43,16 @@ func (p *ProjectDao) FindCollectProjectByMemId(ctx context.Context, memId int64,
 	query := fmt.Sprintf("member_code=?")
 	session.Model(&project.ProjectCollection{}).Where(query, memId).Count(&total)
 	return mp, total, err
+}
+
+func (p *ProjectDao) SaveProject(conn database.DbConn, ctx context.Context, pr *project.Project) error {
+	//使用事务	需要使用同一连接 不然没法做事务操作
+	p.conn = conn.(*gorms.GormConn)
+	return p.conn.Tx(ctx).Save(&pr).Error
+}
+
+func (p *ProjectDao) SaveProjectMember(conn database.DbConn, ctx context.Context, pm *project.ProjectMember) error {
+	//使用事务
+	p.conn = conn.(*gorms.GormConn)
+	return p.conn.Tx(ctx).Save(&pm).Error
 }
