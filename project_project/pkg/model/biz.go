@@ -25,3 +25,8 @@ const (
 	Default = "default"
 	Simple  = "simple"
 )
+
+const (
+	NoCollected = iota
+	Collected
+)

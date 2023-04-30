@@ -46,14 +46,14 @@ func (p *ProjectService) Index(ctx context.Context, req *project.IndexRequest) (
 	c := context.Background()
 	pms, err := p.menuRepo.FindMenus(c)
 	if err != nil {
-		zap.L().Error("首页模块menu数据库存入出错", zap.Error(err))
+		zap.L().Error("project Index FindMenus error", zap.Error(err))
 		return nil, errs.GrpcError(model.DBError)
 	}
 	childs := menu.CovertChild(pms)
 	var mms []*project.MenuMessage
 	err = copier.Copy(&mms, childs)
 	if err != nil {
-		zap.L().Error("首页模块childs结构体赋值错误", zap.Error(err))
+		zap.L().Error("project Index Copy error", zap.Error(err))
 		return nil, errs.GrpcError(model.CopyError)
 	}
 	return &project.IndexResponse{Menus: mms}, nil
@@ -81,7 +81,7 @@ func (p *ProjectService) FindProjectByMemId(ctx context.Context, req *project.Pr
 	}
 
 	if err != nil {
-		zap.L().Error("首页模块project查找失败", zap.Error(err))
+		zap.L().Error("project FindProjectByMemId FindProjectByMemId/FindCollectProjectByMemId error", zap.Error(err))
 		return nil, errs.GrpcError(model.DBError)
 	}
 	//如果查询的项目数量为空 则返回空值
@@ -92,7 +92,7 @@ func (p *ProjectService) FindProjectByMemId(ctx context.Context, req *project.Pr
 	var pmm []*project.ProjectMessage
 	err = copier.Copy(&pmm, pms)
 	if err != nil {
-		zap.L().Error("首页模块pmm结构体赋值错误", zap.Error(err))
+		zap.L().Error("project FindProjectByMemId Copy error", zap.Error(err))
 		return nil, errs.GrpcError(model.CopyError)
 	}
 	for _, v := range pmm {
@@ -132,13 +132,13 @@ func (p *ProjectService) FindProjectTemplate(ctx context.Context, req *project.P
 		pts, total, err = p.projectTemplateRepo.FindProjectTemplateSystem(ctx, page, pageSize)
 	}
 	if err != nil {
-		zap.L().Error("项目模板模块类型选择出错", zap.Error(err))
+		zap.L().Error("project FindProjectTemplate FindProjectTemplateAll/Custom/System error", zap.Error(err))
 		return nil, errs.GrpcError(model.DBError)
 	}
 	//2. 模型转换 拿到模板id列表，去 任务步骤模板表，去进行查询
 	tsts, err := p.taskStagesTemplateRepo.FindInProTemIds(ctx, pro.ToProjectTemplateIds(pts))
 	if err != nil {
-		zap.L().Error("项目模板模型转换", zap.Error(err))
+		zap.L().Error("project FindProjectTemplate FindInProTemIds error", zap.Error(err))
 		return nil, errs.GrpcError(model.DBError)
 	}
 	var ptas []*pro.ProjectTemplateAll
@@ -150,7 +150,7 @@ func (p *ProjectService) FindProjectTemplate(ctx context.Context, req *project.P
 	var pmMsgs []*project.ProjectTemplate
 	err = copier.Copy(&pmMsgs, ptas)
 	if err != nil {
-		zap.L().Error("项目模块赋值错误", zap.Error(err))
+		zap.L().Error("project FindProjectTemplate Copy error", zap.Error(err))
 		return nil, errs.GrpcError(model.CopyError)
 	}
 	return &project.ProjectTemplateResponse{Ptm: pmMsgs, Total: total}, nil
@@ -178,7 +178,7 @@ func (ps *ProjectService) SaveProject(ctx context.Context, msg *project.ProjectR
 	err := ps.transaction.Action(func(conn database.DbConn) error {
 		err := ps.projectRepo.SaveProject(conn, ctx, pr)
 		if err != nil {
-			zap.L().Error("项目创建模块_项目数据存入出错", zap.Error(err))
+			zap.L().Error("project SaveProject SaveProject error", zap.Error(err))
 			return errs.GrpcError(model.DBError)
 		}
 		pm := &pro.ProjectMember{
@@ -191,7 +191,7 @@ func (ps *ProjectService) SaveProject(ctx context.Context, msg *project.ProjectR
 		//2. 保存项目和成员的关联表
 		err = ps.projectRepo.SaveProjectMember(conn, ctx, pm)
 		if err != nil {
-			zap.L().Error("项目创建模块_项目与成员数据存入出错", zap.Error(err))
+			zap.L().Error("project SaveProject SaveProjectMember error", zap.Error(err))
 			return errs.GrpcError(model.DBError)
 		}
 		return nil
@@ -212,3 +212,50 @@ func (ps *ProjectService) SaveProject(ctx context.Context, msg *project.ProjectR
 
 	return rsp, nil
 }
+
+// FindProjectDetail 读取项目
+func (ps *ProjectService) FindProjectDetail(ctx context.Context, msg *project.ProjectRpcMessage) (*project.ProjectDetailMessage, error) {
+	c, cancel := context.WithTimeout(context.Background(), 2*time.Second) //编写上下文 最多允许两秒超时
+	defer cancel()
+	cipherIdCodeStr, _ := encrypts.Decrypt(msg.ProjectCode, model.AESKey)
+	cipherIdCode, _ := strconv.ParseInt(cipherIdCodeStr, 10, 64)
+	// 转换ID 将加密所用的ID转为真正的项目ID
+	projectCode, err := ps.projectRepo.FindProjectByCipId(c, cipherIdCode)
+	if err != nil {
+		zap.L().Error("project FindProjectDetail FindProjectByCipId error", zap.Error(err))
+		return nil, errs.GrpcError(model.DBError)
+	}
+
+	memberId := msg.MemberId
+	projectAndMember, err := ps.projectRepo.FindProjectByPIdAndMemId(c, projectCode, memberId)
+	if err != nil {
+		zap.L().Error("project FindProjectDetail FindProjectByPIdAndMemId error", zap.Error(err))
+		return nil, errs.GrpcError(model.DBError)
+	}
+	//ownerId := projecAndMember.IsOwner
+	//TODO  与user模块交互 查询用户名	收藏可以放入Redis
+	isCollect, err := ps.projectRepo.FindCollectByPIdAndMemId(c, projectCode, memberId)
+	if err != nil {
+		zap.L().Error("project FindProjectDetail FindCollectByPIdAndMemId error", zap.Error(err))
+		return nil, errs.GrpcError(model.DBError)
+	}
+	if isCollect {
+		projectAndMember.Collected = model.Collected
+	} else {
+		projectAndMember.Collected = model.NoCollected
+	}
+	var detailMsg = &project.ProjectDetailMessage{}
+	err = copier.Copy(detailMsg, projectAndMember)
+	if err != nil {
+		zap.L().Error("project FindProjectDetail Copy error", zap.Error(err))
+		return nil, errs.GrpcError(model.CopyError)
+	}
+	// TODO
+	detailMsg.OwnerAvatar = ""
+
+	return detailMsg, err
+}
+
+//1. 查项目表
+//2. 查项目和成员的关联表 查项目的拥有者 去member表查名字
+//3. 查收藏表 判断收藏状态

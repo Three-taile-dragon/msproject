@@ -163,12 +163,33 @@ func (p *HandleProject) projectSave(c *gin.Context) {
 		c.JSON(http.StatusOK, result.Fail(code, msg))
 	}
 	var rsp *pro.SaveProject
-	copier.Copy(&rsp, saveProject)
-	//err = copier.Copy(&rsp, saveProject)
-	//if err != nil {
-	//	zap.L().Error("项目创建模块返回数据复制出错", zap.Error(err))
-	//	c.JSON(http.StatusOK, result.Fail(502, "系统内部错误"))
-	//}
+	//copier.Copy(&rsp, saveProject)
+	err = copier.Copy(&rsp, saveProject)
+	if err != nil {
+		zap.L().Error("项目创建模块返回数据复制出错", zap.Error(err))
+		c.JSON(http.StatusOK, result.Fail(502, "系统内部错误"))
+	}
 	c.JSON(http.StatusOK, result.Success(rsp))
 
+}
+
+func (p *HandleProject) projectRead(c *gin.Context) {
+	result := &common.Result{}
+	//1. 获取参数
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	memberId := c.GetInt64("memberId")
+	projectCode := c.PostForm("projectCode")
+	detail, err := rpc.ProjectServiceClient.FindProjectDetail(ctx, &project.ProjectRpcMessage{ProjectCode: projectCode, MemberId: memberId})
+	if err != nil {
+		code, msg := errs.ParseGrpcError(err)
+		c.JSON(http.StatusOK, result.Fail(code, msg))
+	}
+	pd := pro.ProjectDetail{}
+	err = copier.Copy(&pd, detail)
+	if err != nil {
+		zap.L().Error("项目读取模块返回数据复制出错", zap.Error(err))
+		c.JSON(http.StatusOK, result.Fail(502, "系统内部错误"))
+	}
+	c.JSON(http.StatusOK, result.Success(pd))
 }

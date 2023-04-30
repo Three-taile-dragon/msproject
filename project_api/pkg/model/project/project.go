@@ -85,3 +85,11 @@ type SaveProject struct {
 	TaskBoardTheme   string `json:"task_board_theme"`
 	OrganizationCode string `json:"organization_code"`
 }
+
+// ProjectDetail 读取项目
+type ProjectDetail struct {
+	Project
+	OwnerName   string `json:"owner_name"`
+	Collected   int    `json:"collected"`
+	OwnerAvatar string `json:"owner_avatar"`
+}

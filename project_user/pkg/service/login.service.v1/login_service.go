@@ -191,7 +191,7 @@ func (ls *LoginService) Login(ctx context.Context, req *login.LoginRequest) (*lo
 		zap.L().Error("登陆模块memMessage赋值错误", zap.Error(err))
 		return nil, errs.GrpcError(model.CopyError)
 	}
-	memMessage.Code, _ = encrypts.EncryptInt64(mem.Id, config.C.AC.AesKey) //加密用户ID
+	memMessage.Code, _ = encrypts.EncryptInt64(mem.Id, model.AESKey) //加密用户ID
 	memMessage.LastLoginTime = tms.FormatByMill(mem.LastLoginTime)
 	memMessage.CreateTime = tms.FormatByMill(mem.CreateTime)
 	//5.根据用户id查组织
@@ -207,13 +207,13 @@ func (ls *LoginService) Login(ctx context.Context, req *login.LoginRequest) (*lo
 		return nil, errs.GrpcError(model.CopyError)
 	}
 	for _, v := range orgsMessage {
-		v.Code, _ = encrypts.EncryptInt64(v.Id, config.C.AC.AesKey) //加密组织ID
+		v.Code, _ = encrypts.EncryptInt64(v.Id, model.AESKey) //加密组织ID
 		v.OwnerCode = memMessage.Code
 		organization := data.ToMap(orgs)[v.Id]
 		v.CreateTime = tms.FormatByMill(organization.CreateTime)
 	}
 	if len(orgs) > 0 {
-		memMessage.OrganizationCode, _ = encrypts.EncryptInt64(orgs[0].Id, config.C.AC.AesKey)
+		memMessage.OrganizationCode, _ = encrypts.EncryptInt64(orgs[0].Id, model.AESKey)
 	}
 
 	//6.用jwt生成token
@@ -263,7 +263,7 @@ func (ls *LoginService) TokenVerify(ctx context.Context, msg *login.TokenRequest
 		zap.L().Error("Token验证模块memMessage赋值错误", zap.Error(err))
 		return nil, errs.GrpcError(model.CopyError)
 	}
-	memMessage.Code, _ = encrypts.EncryptInt64(memberById.Id, config.C.AC.AesKey) //加密用户ID
+	memMessage.Code, _ = encrypts.EncryptInt64(memberById.Id, model.AESKey) //加密用户ID
 
 	orgs, err := ls.organizationRepo.FindOrganizationByMemId(c, memMessage.Id)
 	if err != nil {
@@ -272,7 +272,7 @@ func (ls *LoginService) TokenVerify(ctx context.Context, msg *login.TokenRequest
 	}
 
 	if len(orgs) > 0 {
-		memMessage.OrganizationCode, _ = encrypts.EncryptInt64(orgs[0].Id, config.C.AC.AesKey)
+		memMessage.OrganizationCode, _ = encrypts.EncryptInt64(orgs[0].Id, model.AESKey)
 	}
 
 	return &login.LoginResponse{Member: memMessage}, nil
@@ -288,7 +288,7 @@ func (l *LoginService) MyOrgList(ctx context.Context, msg *login.UserMessage) (*
 	var orgsMessage []*login.OrganizationMessage
 	err = copier.Copy(&orgsMessage, orgs)
 	for _, org := range orgsMessage {
-		org.Code, _ = encrypts.EncryptInt64(org.Id, config.C.AC.AesKey)
+		org.Code, _ = encrypts.EncryptInt64(org.Id, model.AESKey)
 	}
 	return &login.OrgListResponse{OrganizationList: orgsMessage}, nil
 }
