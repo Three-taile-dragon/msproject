@@ -273,14 +273,15 @@ func (ls *LoginService) TokenVerify(ctx context.Context, msg *login.TokenRequest
 
 	if len(orgs) > 0 {
 		memMessage.OrganizationCode, _ = encrypts.EncryptInt64(orgs[0].Id, model.AESKey)
-	}
 
+	}
+	memMessage.CreateTime = tms.FormatByMill(memberById.CreateTime)
 	return &login.LoginResponse{Member: memMessage}, nil
 }
 
-func (l *LoginService) MyOrgList(ctx context.Context, msg *login.UserMessage) (*login.OrgListResponse, error) {
+func (ls *LoginService) MyOrgList(ctx context.Context, msg *login.UserMessage) (*login.OrgListResponse, error) {
 	memId := msg.MemId
-	orgs, err := l.organizationRepo.FindOrganizationByMemId(ctx, memId)
+	orgs, err := ls.organizationRepo.FindOrganizationByMemId(ctx, memId)
 	if err != nil {
 		zap.L().Error("用户模块组织列表获取失败", zap.Error(err))
 		return nil, errs.GrpcError(model.DBError)
@@ -291,4 +292,34 @@ func (l *LoginService) MyOrgList(ctx context.Context, msg *login.UserMessage) (*
 		org.Code, _ = encrypts.EncryptInt64(org.Id, model.AESKey)
 	}
 	return &login.OrgListResponse{OrganizationList: orgsMessage}, nil
+}
+
+// grpc 与 project 模块
+
+func (ls *LoginService) FindMemInfoById(ctx context.Context, req *login.UserMessage) (*login.MemberMessage, error) {
+	c := context.Background()
+	memberById, err := ls.memberRepo.FindMemberById(c, req.MemId)
+	if err != nil {
+		zap.L().Error("login FindMemInfoById FindMemberById error", zap.Error(err))
+		return nil, errs.GrpcError(model.DBError)
+	}
+	memMessage := &login.MemberMessage{}
+	err = copier.Copy(&memMessage, memberById)
+	if err != nil {
+		zap.L().Error("login FindMemInfoById Copy error", zap.Error(err))
+		return nil, errs.GrpcError(model.CopyError)
+	}
+	memMessage.Code, _ = encrypts.EncryptInt64(memberById.Id, model.AESKey) //加密用户ID
+
+	orgs, err := ls.organizationRepo.FindOrganizationByMemId(c, memMessage.Id)
+	if err != nil {
+		zap.L().Error("login FindMemInfoById FindOrganizationByMemId error", zap.Error(err))
+		return nil, errs.GrpcError(model.OrganizationNoExist)
+	}
+
+	if len(orgs) > 0 {
+		memMessage.OrganizationCode, _ = encrypts.EncryptInt64(orgs[0].Id, model.AESKey)
+		memMessage.CreateTime = tms.FormatByMill(memberById.CreateTime)
+	}
+	return memMessage, nil
 }

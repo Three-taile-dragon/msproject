@@ -21,6 +21,8 @@ func main() {
 	stop := func() {
 		gc.Stop()
 	}
+	// 初始化rpc调用
+	router.InitUserRpc()
 	//r.Run(":8080")
 	srv.Run(r, config.C.SC.Name, config.C.SC.Addr, stop) //使用viper读取yaml配置文件
 }

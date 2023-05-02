@@ -9,6 +9,7 @@ import (
 	"test.com/project_common/errs"
 	"test.com/project_common/tms"
 	"test.com/project_grpc/project"
+	"test.com/project_grpc/user/login"
 	"test.com/project_project/internal/dao"
 	"test.com/project_project/internal/dao/mysql"
 	"test.com/project_project/internal/data/menu"
@@ -17,6 +18,7 @@ import (
 	"test.com/project_project/internal/database"
 	"test.com/project_project/internal/database/tran"
 	"test.com/project_project/internal/repo"
+	"test.com/project_project/internal/rpc"
 	"test.com/project_project/pkg/model"
 	"time"
 )
@@ -220,6 +222,7 @@ func (ps *ProjectService) FindProjectDetail(ctx context.Context, msg *project.Pr
 	cipherIdCodeStr, _ := encrypts.Decrypt(msg.ProjectCode, model.AESKey)
 	cipherIdCode, _ := strconv.ParseInt(cipherIdCodeStr, 10, 64)
 	// 转换ID 将加密所用的ID转为真正的项目ID
+
 	projectCode, err := ps.projectRepo.FindProjectByCipId(c, cipherIdCode)
 	if err != nil {
 		zap.L().Error("project FindProjectDetail FindProjectByCipId error", zap.Error(err))
@@ -232,8 +235,13 @@ func (ps *ProjectService) FindProjectDetail(ctx context.Context, msg *project.Pr
 		zap.L().Error("project FindProjectDetail FindProjectByPIdAndMemId error", zap.Error(err))
 		return nil, errs.GrpcError(model.DBError)
 	}
-	//ownerId := projecAndMember.IsOwner
-	//TODO  与user模块交互 查询用户名	收藏可以放入Redis
+	ownerId := projectAndMember.IsOwner
+	member, err := rpc.LoginServiceClient.FindMemInfoById(c, &login.UserMessage{MemId: ownerId})
+	if err != nil {
+		zap.L().Error("project rpc FindProjectDetail FindMemInfoById error", zap.Error(err))
+		return nil, err
+	}
+	//TODO  收藏可以放入Redis
 	isCollect, err := ps.projectRepo.FindCollectByPIdAndMemId(c, projectCode, memberId)
 	if err != nil {
 		zap.L().Error("project FindProjectDetail FindCollectByPIdAndMemId error", zap.Error(err))
@@ -251,8 +259,13 @@ func (ps *ProjectService) FindProjectDetail(ctx context.Context, msg *project.Pr
 		return nil, errs.GrpcError(model.CopyError)
 	}
 	// TODO
-	detailMsg.OwnerAvatar = ""
-
+	detailMsg.OwnerName = member.Name
+	detailMsg.OwnerAvatar = member.Avatar
+	detailMsg.Code, _ = encrypts.EncryptInt64(projectAndMember.Id, model.AESKey)
+	detailMsg.AccessControlType = projectAndMember.GetAccessControlType()
+	detailMsg.OrganizationCode, _ = encrypts.EncryptInt64(projectAndMember.OrganizationCode, model.AESKey)
+	detailMsg.Order = int32(projectAndMember.Sort)
+	detailMsg.CreateTime = tms.FormatByMill(projectAndMember.CreateTime)
 	return detailMsg, err
 }
 
