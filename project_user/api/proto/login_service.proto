@@ -1,7 +1,7 @@
 //grpc 登陆服务配置文件
 
 syntax = "proto3";
-package login.service.v1;
+package login;
 option go_package = "project_user/pkg/service/login.service.v1";
 
 

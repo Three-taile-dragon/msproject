@@ -6,6 +6,7 @@ import (
 	"test.com/project_project/internal/data/project"
 	"test.com/project_project/internal/database"
 	"test.com/project_project/internal/database/gorms"
+	"time"
 )
 
 type ProjectDao struct {
@@ -84,4 +85,15 @@ func (p *ProjectDao) SaveProjectMember(conn database.DbConn, ctx context.Context
 	p.conn = conn.(*gorms.GormConn)
 	//return p.conn.Tx(ctx).Save(&pm).Error
 	return p.conn.Tx(ctx).Create(&pm).Error
+}
+
+func (p *ProjectDao) DeleteProject(ctx context.Context, id int64) error {
+	//err := p.conn.Session(ctx).Model(&project.Project{}).Where("id=?", id).Update("deleted", 1).Error
+	err := p.conn.Session(ctx).Model(&project.Project{}).Where("id=?", id).Updates(map[string]interface{}{"deleted": 1, "deleted_time": time.Now().UnixMilli()}).Error
+	return err
+}
+
+func (p *ProjectDao) RecoveryProject(ctx context.Context, id int64) error {
+	err := p.conn.Session(ctx).Model(&project.Project{}).Where("id=?", id).Updates(map[string]interface{}{"deleted": 0, "deleted_time": 0}).Error
+	return err
 }

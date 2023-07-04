@@ -193,3 +193,31 @@ func (p *HandleProject) projectRead(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, result.Success(pd))
 }
+
+func (p *HandleProject) projectRecycle(c *gin.Context) {
+	result := &common.Result{}
+	//1. 获取参数
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	projectCode := c.PostForm("projectCode")
+	_, err := rpc.ProjectServiceClient.RecycleProject(ctx, &project.ProjectRpcMessage{ProjectCode: projectCode})
+	if err != nil {
+		code, msg := errs.ParseGrpcError(err)
+		c.JSON(http.StatusOK, result.Fail(code, msg))
+	}
+	c.JSON(http.StatusOK, result.Success([]int{}))
+}
+
+func (p *HandleProject) projectRecovery(c *gin.Context) {
+	result := &common.Result{}
+	//1. 获取参数
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	projectCode := c.PostForm("projectCode")
+	_, err := rpc.ProjectServiceClient.RecoveryProject(ctx, &project.ProjectRpcMessage{ProjectCode: projectCode})
+	if err != nil {
+		code, msg := errs.ParseGrpcError(err)
+		c.JSON(http.StatusOK, result.Fail(code, msg))
+	}
+	c.JSON(http.StatusOK, result.Success([]int{}))
+}

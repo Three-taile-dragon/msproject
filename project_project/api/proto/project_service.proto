@@ -1,7 +1,7 @@
 //grpc 登陆服务配置文件
 
 syntax = "proto3";
-package project.service.v1;
+package project;
 option go_package = "project_project/pkg/service/project.service.v1";
 
 message IndexRequest{
@@ -146,6 +146,8 @@ message ProjectDetailMessage{
   int32 collected = 27;
   string ownerAvatar = 28;
 }
+message RecycleProjectResponse{}
+message RecoveryProjectResponse{}
 
 service ProjectService {
   rpc Index(IndexRequest) returns (IndexResponse) {}
@@ -153,4 +155,6 @@ service ProjectService {
   rpc FindProjectTemplate(ProjectRpcMessage) returns (ProjectTemplateResponse) {}
   rpc SaveProject(ProjectRpcMessage) returns (SaveProjectMessage) {}
   rpc FindProjectDetail(ProjectRpcMessage) returns (ProjectDetailMessage) {}
+  rpc RecycleProject(ProjectRpcMessage) returns (RecycleProjectResponse) {}
+  rpc RecoveryProject(ProjectRpcMessage) returns (RecoveryProjectResponse) {}
 }
