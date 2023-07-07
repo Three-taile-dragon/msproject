@@ -237,3 +237,26 @@ func (p *HandleProject) projectCollect(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, result.Success([]int{}))
 }
+
+func (p *HandleProject) projectEdit(c *gin.Context) {
+	result := &common.Result{}
+	//1. 获取参数
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	var req *pro.ProjectReq
+	_ = c.ShouldBind(&req)
+	memberId := c.GetInt64("memberId")
+	msg := &project.UpdateProjectMessage{}
+	err := copier.Copy(msg, req)
+	if err != nil {
+		zap.L().Error("api projectEdit Copy error", zap.Error(err))
+		c.JSON(http.StatusOK, result.Fail(errs.ParseGrpcError(err)))
+	}
+	msg.MemberId = memberId
+	_, err = rpc.ProjectServiceClient.UpdateProject(ctx, msg)
+	if err != nil {
+		code, msg := errs.ParseGrpcError(err)
+		c.JSON(http.StatusOK, result.Fail(code, msg))
+	}
+	c.JSON(http.StatusOK, result.Success([]int{}))
+}

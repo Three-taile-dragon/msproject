@@ -49,7 +49,7 @@ func (p *ProjectDao) FindCollectProjectByMemId(ctx context.Context, memId int64,
 func (p *ProjectDao) FindProjectByPIdAndMemId(ctx context.Context, projectCode int64, memberId int64) (*project.ProjectAndMember, error) {
 	var pms *project.ProjectAndMember
 	session := p.conn.Session(ctx)
-	sql := fmt.Sprintf("select * from ms_project a, ms_project_member b where a.id = b.project_code and b.member_code=? and b.project_code =? limit 1")
+	sql := fmt.Sprintf("select a.*,b.project_code,b.member_code,b.join_time,b.is_owner,b.authorize from ms_project a, ms_project_member b where a.id = b.project_code and b.member_code=? and b.project_code =? limit 1")
 	raw := session.Raw(sql, memberId, projectCode)
 	err := raw.Scan(&pms).Error
 	return pms, err
@@ -104,4 +104,8 @@ func (p *ProjectDao) CollectProject(ctx context.Context, pc *project.ProjectColl
 
 func (p *ProjectDao) CancelCollectProject(ctx context.Context, projectCode int64, memberId int64) error {
 	return p.conn.Session(ctx).Where("project_code = ? and member_code = ?", projectCode, memberId).Delete(project.ProjectCollection{}).Error
+}
+
+func (p *ProjectDao) UpdateProject(ctx context.Context, proj *project.Project) error {
+	return p.conn.Session(ctx).Updates(&proj).Error
 }

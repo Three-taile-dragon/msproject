@@ -329,3 +329,30 @@ func (ps *ProjectService) RecoveryProject(ctx context.Context, msg *project.Proj
 	}
 	return &project.RecoveryProjectResponse{}, nil
 }
+
+func (ps *ProjectService) UpdateProject(ctx context.Context, msg *project.UpdateProjectMessage) (*project.UpdateProjectResponse, error) {
+	c, cancel := context.WithTimeout(context.Background(), 2*time.Second) //编写上下文 最多允许两秒超时
+	defer cancel()
+	projectCodeStr, _ := encrypts.Decrypt(msg.ProjectCode, model.AESKey)
+	projectCode, _ := strconv.ParseInt(projectCodeStr, 10, 64)
+	proj := &pro.Project{
+		Id:                 projectCode,
+		Name:               msg.Name,
+		Description:        msg.Description,
+		Cover:              msg.Cover,
+		TaskBoardTheme:     msg.TaskBoardTheme,
+		Prefix:             msg.Prefix,
+		Private:            int(msg.Private),
+		OpenPrefix:         int(msg.OpenPrefix),
+		OpenBeginTime:      int(msg.OpenBeginTime),
+		OpenTaskPrivate:    int(msg.OpenTaskPrivate),
+		Schedule:           msg.Schedule,
+		AutoUpdateSchedule: int(msg.AutoUpdateSchedule),
+	}
+	err := ps.projectRepo.UpdateProject(c, proj)
+	if err != nil {
+		zap.L().Error("project UpdateProject UpdateProject error", zap.Error(err))
+		return nil, errs.GrpcError(model.DBError)
+	}
+	return &project.UpdateProjectResponse{}, nil
+}
