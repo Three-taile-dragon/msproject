@@ -97,3 +97,11 @@ func (p *ProjectDao) RecoveryProject(ctx context.Context, id int64) error {
 	err := p.conn.Session(ctx).Model(&project.Project{}).Where("id=?", id).Updates(map[string]interface{}{"deleted": 0, "deleted_time": 0}).Error
 	return err
 }
+
+func (p *ProjectDao) CollectProject(ctx context.Context, pc *project.ProjectCollection) error {
+	return p.conn.Session(ctx).Save(&pc).Error
+}
+
+func (p *ProjectDao) CancelCollectProject(ctx context.Context, projectCode int64, memberId int64) error {
+	return p.conn.Session(ctx).Where("project_code = ? and member_code = ?", projectCode, memberId).Delete(project.ProjectCollection{}).Error
+}

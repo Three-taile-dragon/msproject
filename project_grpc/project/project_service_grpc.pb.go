@@ -29,6 +29,7 @@ type ProjectServiceClient interface {
 	FindProjectDetail(ctx context.Context, in *ProjectRpcMessage, opts ...grpc.CallOption) (*ProjectDetailMessage, error)
 	RecycleProject(ctx context.Context, in *ProjectRpcMessage, opts ...grpc.CallOption) (*RecycleProjectResponse, error)
 	RecoveryProject(ctx context.Context, in *ProjectRpcMessage, opts ...grpc.CallOption) (*RecoveryProjectResponse, error)
+	CollectProject(ctx context.Context, in *ProjectRpcMessage, opts ...grpc.CallOption) (*CollectProjectResponse, error)
 }
 
 type projectServiceClient struct {
@@ -102,6 +103,15 @@ func (c *projectServiceClient) RecoveryProject(ctx context.Context, in *ProjectR
 	return out, nil
 }
 
+func (c *projectServiceClient) CollectProject(ctx context.Context, in *ProjectRpcMessage, opts ...grpc.CallOption) (*CollectProjectResponse, error) {
+	out := new(CollectProjectResponse)
+	err := c.cc.Invoke(ctx, "/project.ProjectService/CollectProject", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ProjectServiceServer is the server API for ProjectService service.
 // All implementations must embed UnimplementedProjectServiceServer
 // for forward compatibility
@@ -113,6 +123,7 @@ type ProjectServiceServer interface {
 	FindProjectDetail(context.Context, *ProjectRpcMessage) (*ProjectDetailMessage, error)
 	RecycleProject(context.Context, *ProjectRpcMessage) (*RecycleProjectResponse, error)
 	RecoveryProject(context.Context, *ProjectRpcMessage) (*RecoveryProjectResponse, error)
+	CollectProject(context.Context, *ProjectRpcMessage) (*CollectProjectResponse, error)
 	mustEmbedUnimplementedProjectServiceServer()
 }
 
@@ -140,6 +151,9 @@ func (UnimplementedProjectServiceServer) RecycleProject(context.Context, *Projec
 }
 func (UnimplementedProjectServiceServer) RecoveryProject(context.Context, *ProjectRpcMessage) (*RecoveryProjectResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RecoveryProject not implemented")
+}
+func (UnimplementedProjectServiceServer) CollectProject(context.Context, *ProjectRpcMessage) (*CollectProjectResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CollectProject not implemented")
 }
 func (UnimplementedProjectServiceServer) mustEmbedUnimplementedProjectServiceServer() {}
 
@@ -280,6 +294,24 @@ func _ProjectService_RecoveryProject_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ProjectService_CollectProject_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ProjectRpcMessage)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProjectServiceServer).CollectProject(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/project.ProjectService/CollectProject",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProjectServiceServer).CollectProject(ctx, req.(*ProjectRpcMessage))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ProjectService_ServiceDesc is the grpc.ServiceDesc for ProjectService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -314,6 +346,10 @@ var ProjectService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RecoveryProject",
 			Handler:    _ProjectService_RecoveryProject_Handler,
+		},
+		{
+			MethodName: "CollectProject",
+			Handler:    _ProjectService_CollectProject_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

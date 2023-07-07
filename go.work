@@ -4,7 +4,7 @@ use (
 	./project_api
 	./project_common
 	./project_grpc
-	./project_user
 	./project_project
+	./project_user
 
 )

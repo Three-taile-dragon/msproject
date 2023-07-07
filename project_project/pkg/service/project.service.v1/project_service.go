@@ -80,6 +80,24 @@ func (ps *ProjectService) FindProjectByMemId(ctx context.Context, req *project.P
 	if req.SelectBy == "collect" {
 		//跨表查询
 		pms, total, err = ps.projectRepo.FindCollectProjectByMemId(ctx, memberId, page, pageSize)
+		for _, v := range pms {
+			v.Collected = model.Collected
+		}
+	} else {
+		collectPms, _, err := ps.projectRepo.FindCollectProjectByMemId(ctx, memberId, page, pageSize)
+		if err != nil {
+			zap.L().Error("project FindProjectByMemId::FindCollectProjectByMemId error", zap.Error(err))
+			return nil, errs.GrpcError(model.DBError)
+		}
+		var cMap = make(map[int64]*pro.ProjectAndMember)
+		for _, v := range collectPms {
+			cMap[v.Id] = v
+		}
+		for _, v := range pms {
+			if cMap[v.ProjectCode] != nil {
+				v.Collected = model.Collected
+			}
+		}
 	}
 
 	if err != nil {
@@ -90,6 +108,7 @@ func (ps *ProjectService) FindProjectByMemId(ctx context.Context, req *project.P
 	if pms == nil {
 		return &project.MyProjectResponse{Pm: []*project.ProjectMessage{}, Total: total}, nil
 	}
+
 	//拷贝数据
 	var pmm []*project.ProjectMessage
 	err = copier.Copy(&pmm, pms)

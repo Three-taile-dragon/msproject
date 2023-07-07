@@ -17,6 +17,8 @@ type ProjectRepo interface {
 	FindProjectByCipId(ctx context.Context, cipherIdCode int64) (int64, error)
 	DeleteProject(ctx context.Context, id int64) error
 	RecoveryProject(ctx context.Context, id int64) error
+	CollectProject(ctx context.Context, pc *project.ProjectCollection) error
+	CancelCollectProject(ctx context.Context, projectCode int64, memberId int64) error
 }
 
 // ProjectTemplateRepo 查询项目模板

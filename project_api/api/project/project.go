@@ -221,3 +221,19 @@ func (p *HandleProject) projectRecovery(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, result.Success([]int{}))
 }
+
+func (p *HandleProject) projectCollect(c *gin.Context) {
+	result := &common.Result{}
+	//1. 获取参数
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	projectCode := c.PostForm("projectCode")
+	collectType := c.PostForm("type")
+	memberId := c.GetInt64("memberId")
+	_, err := rpc.ProjectServiceClient.CollectProject(ctx, &project.ProjectRpcMessage{ProjectCode: projectCode, CollectType: collectType, MemberId: memberId})
+	if err != nil {
+		code, msg := errs.ParseGrpcError(err)
+		c.JSON(http.StatusOK, result.Fail(code, msg))
+	}
+	c.JSON(http.StatusOK, result.Success([]int{}))
+}
