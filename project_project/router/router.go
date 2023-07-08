@@ -10,6 +10,7 @@ import (
 	"test.com/project_common/logs"
 	"test.com/project_grpc/project"
 	"test.com/project_project/config"
+	"test.com/project_project/internal/interceptor"
 	"test.com/project_project/internal/rpc"
 	projectServiceV1 "test.com/project_project/pkg/service/project.service.v1"
 )
@@ -62,8 +63,10 @@ func RegisterGrpc() *grpc.Server {
 		RegisterFunc: func(g *grpc.Server) {
 			project.RegisterProjectServiceServer(g, projectServiceV1.New())
 		}}
-	s := grpc.NewServer() //启动grpc服务
-	c.RegisterFunc(s)     //注册grpc登陆模块
+	// grpc 拦截器	自定义统一缓存
+	cacheInterceptor := interceptor.New()
+	s := grpc.NewServer(cacheInterceptor.Cache()) //启动grpc服务
+	c.RegisterFunc(s)                             //注册grpc登陆模块
 	lis, err := net.Listen("tcp", config.C.GC.Addr)
 	if err != nil {
 		log.Println("cannot listen")
