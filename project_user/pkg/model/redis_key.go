@@ -1,6 +1,8 @@
 package model
 
 // redis 中 key 的定义
-var (
-	RegisterRedisKey = "REGISTER_"
+const (
+	RegisterRedisKey   = "REGISTER_"
+	Member             = "MEMBER"
+	MemberOrganization = "MEMBER_ORGANIZATION"
 )
