@@ -17,6 +17,16 @@ func (t *TaskStagesTemplateDao) FindInProTemIds(ctx context.Context, ids []int) 
 	return tsts, err
 }
 
+func (t *TaskStagesTemplateDao) FindByProjectTemplateId(ctx context.Context, projectTemplateCode int) (list []*task.MsTaskStagesTemplate, err error) {
+	session := t.conn.Session(ctx)
+	err = session.
+		Model(&task.MsTaskStagesTemplate{}).
+		Where("project_template_code = ?", projectTemplateCode).
+		Order("sort desc,id asc").
+		Find(&list).Error
+	return list, err
+}
+
 func NewTaskStagesTemplateDao() *TaskStagesTemplateDao {
 	return &TaskStagesTemplateDao{
 		conn: gorms.New(),

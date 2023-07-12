@@ -17,13 +17,13 @@ import (
 	"time"
 )
 
-type HandleProject struct {
+type HandlerProject struct {
 }
 
-func New() *HandleProject {
-	return &HandleProject{}
+func New() *HandlerProject {
+	return &HandlerProject{}
 }
-func (p *HandleProject) index(c *gin.Context) {
+func (p *HandlerProject) index(c *gin.Context) {
 	result := &common.Result{}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
@@ -43,7 +43,7 @@ func (p *HandleProject) index(c *gin.Context) {
 	c.JSON(http.StatusOK, result.Success(ms))
 }
 
-func (p *HandleProject) myProjectList(c *gin.Context) {
+func (p *HandlerProject) myProjectList(c *gin.Context) {
 	result := &common.Result{}
 	//1. 获取参数
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -86,7 +86,7 @@ func (p *HandleProject) myProjectList(c *gin.Context) {
 	}))
 }
 
-func (p *HandleProject) projectTemplate(c *gin.Context) {
+func (p *HandlerProject) projectTemplate(c *gin.Context) {
 	result := &common.Result{}
 	//1. 获取参数
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -136,7 +136,7 @@ func (p *HandleProject) projectTemplate(c *gin.Context) {
 	}))
 }
 
-func (p *HandleProject) projectSave(c *gin.Context) {
+func (p *HandlerProject) projectSave(c *gin.Context) {
 	result := &common.Result{}
 	//1. 获取参数
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -162,18 +162,29 @@ func (p *HandleProject) projectSave(c *gin.Context) {
 		code, msg := errs.ParseGrpcError(err)
 		c.JSON(http.StatusOK, result.Fail(code, msg))
 	}
-	var rsp *pro.SaveProject
-	//copier.Copy(&rsp, saveProject)
-	err = copier.Copy(&rsp, saveProject)
-	if err != nil {
-		zap.L().Error("项目创建模块返回数据复制出错", zap.Error(err))
-		c.JSON(http.StatusOK, result.Fail(502, "系统内部错误"))
+	//var rsp *pro.SaveProject
+	////copier.Copy(&rsp, saveProject)
+	//err = copier.Copy(&rsp, saveProject)
+	//if err != nil {
+	//	zap.L().Error("项目创建模块返回数据复制出错", zap.Error(err))
+	//	c.JSON(http.StatusOK, result.Fail(502, "系统内部错误"))
+	//}
+	rsp := &pro.SaveProject{
+		Id:               saveProject.Id,
+		Cover:            saveProject.Cover,
+		Name:             saveProject.Name,
+		Description:      saveProject.Description,
+		Code:             saveProject.Code,
+		CreateTime:       saveProject.CreateTime,
+		TaskBoardTheme:   saveProject.TaskBoardTheme,
+		OrganizationCode: saveProject.OrganizationCode,
 	}
+
 	c.JSON(http.StatusOK, result.Success(rsp))
 
 }
 
-func (p *HandleProject) projectRead(c *gin.Context) {
+func (p *HandlerProject) projectRead(c *gin.Context) {
 	result := &common.Result{}
 	//1. 获取参数
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -194,7 +205,7 @@ func (p *HandleProject) projectRead(c *gin.Context) {
 	c.JSON(http.StatusOK, result.Success(pd))
 }
 
-func (p *HandleProject) projectRecycle(c *gin.Context) {
+func (p *HandlerProject) projectRecycle(c *gin.Context) {
 	result := &common.Result{}
 	//1. 获取参数
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -208,7 +219,7 @@ func (p *HandleProject) projectRecycle(c *gin.Context) {
 	c.JSON(http.StatusOK, result.Success([]int{}))
 }
 
-func (p *HandleProject) projectRecovery(c *gin.Context) {
+func (p *HandlerProject) projectRecovery(c *gin.Context) {
 	result := &common.Result{}
 	//1. 获取参数
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -222,7 +233,7 @@ func (p *HandleProject) projectRecovery(c *gin.Context) {
 	c.JSON(http.StatusOK, result.Success([]int{}))
 }
 
-func (p *HandleProject) projectCollect(c *gin.Context) {
+func (p *HandlerProject) projectCollect(c *gin.Context) {
 	result := &common.Result{}
 	//1. 获取参数
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -238,7 +249,7 @@ func (p *HandleProject) projectCollect(c *gin.Context) {
 	c.JSON(http.StatusOK, result.Success([]int{}))
 }
 
-func (p *HandleProject) projectEdit(c *gin.Context) {
+func (p *HandlerProject) projectEdit(c *gin.Context) {
 	result := &common.Result{}
 	//1. 获取参数
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)

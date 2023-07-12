@@ -37,4 +37,7 @@ func (*RouterProject) Router(r *gin.Engine) {
 	group.POST("/project/recovery", h.projectRecovery)
 	group.POST("/project_collect/collect", h.projectCollect)
 	group.POST("/project/edit", h.projectEdit)
+
+	t := NewTask()
+	group.POST("/task_stages", t.taskStages)
 }

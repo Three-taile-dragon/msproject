@@ -43,7 +43,7 @@ func NewProjectServiceClient(cc grpc.ClientConnInterface) ProjectServiceClient {
 
 func (c *projectServiceClient) Index(ctx context.Context, in *IndexRequest, opts ...grpc.CallOption) (*IndexResponse, error) {
 	out := new(IndexResponse)
-	err := c.cc.Invoke(ctx, "/project.ProjectService/Index", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/project.service.v1.ProjectService/Index", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +52,7 @@ func (c *projectServiceClient) Index(ctx context.Context, in *IndexRequest, opts
 
 func (c *projectServiceClient) FindProjectByMemId(ctx context.Context, in *ProjectRpcMessage, opts ...grpc.CallOption) (*MyProjectResponse, error) {
 	out := new(MyProjectResponse)
-	err := c.cc.Invoke(ctx, "/project.ProjectService/FindProjectByMemId", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/project.service.v1.ProjectService/FindProjectByMemId", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func (c *projectServiceClient) FindProjectByMemId(ctx context.Context, in *Proje
 
 func (c *projectServiceClient) FindProjectTemplate(ctx context.Context, in *ProjectRpcMessage, opts ...grpc.CallOption) (*ProjectTemplateResponse, error) {
 	out := new(ProjectTemplateResponse)
-	err := c.cc.Invoke(ctx, "/project.ProjectService/FindProjectTemplate", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/project.service.v1.ProjectService/FindProjectTemplate", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +70,7 @@ func (c *projectServiceClient) FindProjectTemplate(ctx context.Context, in *Proj
 
 func (c *projectServiceClient) SaveProject(ctx context.Context, in *ProjectRpcMessage, opts ...grpc.CallOption) (*SaveProjectMessage, error) {
 	out := new(SaveProjectMessage)
-	err := c.cc.Invoke(ctx, "/project.ProjectService/SaveProject", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/project.service.v1.ProjectService/SaveProject", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +79,7 @@ func (c *projectServiceClient) SaveProject(ctx context.Context, in *ProjectRpcMe
 
 func (c *projectServiceClient) FindProjectDetail(ctx context.Context, in *ProjectRpcMessage, opts ...grpc.CallOption) (*ProjectDetailMessage, error) {
 	out := new(ProjectDetailMessage)
-	err := c.cc.Invoke(ctx, "/project.ProjectService/FindProjectDetail", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/project.service.v1.ProjectService/FindProjectDetail", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func (c *projectServiceClient) FindProjectDetail(ctx context.Context, in *Projec
 
 func (c *projectServiceClient) RecycleProject(ctx context.Context, in *ProjectRpcMessage, opts ...grpc.CallOption) (*RecycleProjectResponse, error) {
 	out := new(RecycleProjectResponse)
-	err := c.cc.Invoke(ctx, "/project.ProjectService/RecycleProject", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/project.service.v1.ProjectService/RecycleProject", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func (c *projectServiceClient) RecycleProject(ctx context.Context, in *ProjectRp
 
 func (c *projectServiceClient) RecoveryProject(ctx context.Context, in *ProjectRpcMessage, opts ...grpc.CallOption) (*RecoveryProjectResponse, error) {
 	out := new(RecoveryProjectResponse)
-	err := c.cc.Invoke(ctx, "/project.ProjectService/RecoveryProject", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/project.service.v1.ProjectService/RecoveryProject", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +106,7 @@ func (c *projectServiceClient) RecoveryProject(ctx context.Context, in *ProjectR
 
 func (c *projectServiceClient) CollectProject(ctx context.Context, in *ProjectRpcMessage, opts ...grpc.CallOption) (*CollectProjectResponse, error) {
 	out := new(CollectProjectResponse)
-	err := c.cc.Invoke(ctx, "/project.ProjectService/CollectProject", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/project.service.v1.ProjectService/CollectProject", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +115,7 @@ func (c *projectServiceClient) CollectProject(ctx context.Context, in *ProjectRp
 
 func (c *projectServiceClient) UpdateProject(ctx context.Context, in *UpdateProjectMessage, opts ...grpc.CallOption) (*UpdateProjectResponse, error) {
 	out := new(UpdateProjectResponse)
-	err := c.cc.Invoke(ctx, "/project.ProjectService/UpdateProject", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/project.service.v1.ProjectService/UpdateProject", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +192,7 @@ func _ProjectService_Index_Handler(srv interface{}, ctx context.Context, dec fun
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/project.ProjectService/Index",
+		FullMethod: "/project.service.v1.ProjectService/Index",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ProjectServiceServer).Index(ctx, req.(*IndexRequest))
@@ -210,7 +210,7 @@ func _ProjectService_FindProjectByMemId_Handler(srv interface{}, ctx context.Con
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/project.ProjectService/FindProjectByMemId",
+		FullMethod: "/project.service.v1.ProjectService/FindProjectByMemId",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ProjectServiceServer).FindProjectByMemId(ctx, req.(*ProjectRpcMessage))
@@ -228,7 +228,7 @@ func _ProjectService_FindProjectTemplate_Handler(srv interface{}, ctx context.Co
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/project.ProjectService/FindProjectTemplate",
+		FullMethod: "/project.service.v1.ProjectService/FindProjectTemplate",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ProjectServiceServer).FindProjectTemplate(ctx, req.(*ProjectRpcMessage))
@@ -246,7 +246,7 @@ func _ProjectService_SaveProject_Handler(srv interface{}, ctx context.Context, d
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/project.ProjectService/SaveProject",
+		FullMethod: "/project.service.v1.ProjectService/SaveProject",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ProjectServiceServer).SaveProject(ctx, req.(*ProjectRpcMessage))
@@ -264,7 +264,7 @@ func _ProjectService_FindProjectDetail_Handler(srv interface{}, ctx context.Cont
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/project.ProjectService/FindProjectDetail",
+		FullMethod: "/project.service.v1.ProjectService/FindProjectDetail",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ProjectServiceServer).FindProjectDetail(ctx, req.(*ProjectRpcMessage))
@@ -282,7 +282,7 @@ func _ProjectService_RecycleProject_Handler(srv interface{}, ctx context.Context
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/project.ProjectService/RecycleProject",
+		FullMethod: "/project.service.v1.ProjectService/RecycleProject",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ProjectServiceServer).RecycleProject(ctx, req.(*ProjectRpcMessage))
@@ -300,7 +300,7 @@ func _ProjectService_RecoveryProject_Handler(srv interface{}, ctx context.Contex
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/project.ProjectService/RecoveryProject",
+		FullMethod: "/project.service.v1.ProjectService/RecoveryProject",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ProjectServiceServer).RecoveryProject(ctx, req.(*ProjectRpcMessage))
@@ -318,7 +318,7 @@ func _ProjectService_CollectProject_Handler(srv interface{}, ctx context.Context
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/project.ProjectService/CollectProject",
+		FullMethod: "/project.service.v1.ProjectService/CollectProject",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ProjectServiceServer).CollectProject(ctx, req.(*ProjectRpcMessage))
@@ -336,7 +336,7 @@ func _ProjectService_UpdateProject_Handler(srv interface{}, ctx context.Context,
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/project.ProjectService/UpdateProject",
+		FullMethod: "/project.service.v1.ProjectService/UpdateProject",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ProjectServiceServer).UpdateProject(ctx, req.(*UpdateProjectMessage))
@@ -348,7 +348,7 @@ func _ProjectService_UpdateProject_Handler(srv interface{}, ctx context.Context,
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var ProjectService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "project.ProjectService",
+	ServiceName: "project.service.v1.ProjectService",
 	HandlerType: (*ProjectServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

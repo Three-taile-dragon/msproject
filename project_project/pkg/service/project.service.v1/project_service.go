@@ -32,6 +32,7 @@ type ProjectService struct {
 	projectRepo            repo.ProjectRepo
 	projectTemplateRepo    repo.ProjectTemplateRepo
 	taskStagesTemplateRepo repo.TaskStagesTemplateRepo
+	taskStagesRepo         repo.TaskStagesRepo
 }
 
 func New() *ProjectService {
@@ -42,6 +43,7 @@ func New() *ProjectService {
 		projectRepo:            mysql.NewProjectDao(),
 		projectTemplateRepo:    mysql.NewProjectTemplateDao(),
 		taskStagesTemplateRepo: mysql.NewTaskStagesTemplateDao(),
+		taskStagesRepo:         mysql.NewTaskStagesDao(),
 	}
 }
 func (ps *ProjectService) Index(ctx context.Context, req *project.IndexRequest) (*project.IndexResponse, error) {
@@ -182,6 +184,14 @@ func (ps *ProjectService) SaveProject(ctx context.Context, msg *project.ProjectR
 	organizationCode, _ := strconv.ParseInt(organizationCodeStr, 10, 64)
 	templateCodeStr, _ := encrypts.Decrypt(msg.TemplateCode, model.AESKey)
 	templateCode, _ := strconv.ParseInt(templateCodeStr, 10, 64)
+	//获取模板信息
+	c, cancel := context.WithTimeout(context.Background(), 2*time.Second) //编写上下文 最多允许两秒超时
+	defer cancel()
+	stageTemplateList, err := ps.taskStagesTemplateRepo.FindByProjectTemplateId(c, int(templateCode))
+	if err != nil {
+		zap.L().Error("project SaveProject taskStagesTemplateRepo.FindByProjectTemplateId error", zap.Error(err))
+		return nil, errs.GrpcError(model.DBError)
+	}
 	//1. 保存项目表
 	pr := &pro.Project{
 		Name:              msg.Name,
@@ -196,7 +206,7 @@ func (ps *ProjectService) SaveProject(ctx context.Context, msg *project.ProjectR
 		TaskBoardTheme:    model.Simple,
 	}
 	//添加事务
-	err := ps.transaction.Action(func(conn database.DbConn) error {
+	err = ps.transaction.Action(func(conn database.DbConn) error {
 		err := ps.projectRepo.SaveProject(conn, ctx, pr)
 		if err != nil {
 			zap.L().Error("project SaveProject SaveProject error", zap.Error(err))
@@ -214,6 +224,23 @@ func (ps *ProjectService) SaveProject(ctx context.Context, msg *project.ProjectR
 		if err != nil {
 			zap.L().Error("project SaveProject SaveProjectMember error", zap.Error(err))
 			return errs.GrpcError(model.DBError)
+		}
+		//3. 生成任务步骤
+		for index, v := range stageTemplateList {
+			taskStage := &task.TaskStages{
+				ProjectCode: pr.Id,
+				Name:        v.Name,
+				Sort:        index,
+				Description: "",
+				CreateTime:  time.Now().UnixMilli(),
+				Deleted:     model.NoDeleted,
+			}
+			err := ps.taskStagesRepo.SaveTaskStages(ctx, conn, taskStage)
+			if err != nil {
+				zap.L().Error("project SaveProject taskStagesRepo.SaveTaskStages error", zap.Error(err))
+				return errs.GrpcError(model.DBError)
+			}
+
 		}
 		return nil
 	})

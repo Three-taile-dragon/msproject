@@ -9,9 +9,11 @@ import (
 	"test.com/project_common/discovery"
 	"test.com/project_common/logs"
 	"test.com/project_grpc/project"
+	"test.com/project_grpc/task"
 )
 
 var ProjectServiceClient project.ProjectServiceClient
+var TaskServiceClient task.TaskServiceClient
 
 // InitRpcUserClient 初始化grpc客户段连接
 func InitRpcProjectClient() {
@@ -24,4 +26,5 @@ func InitRpcProjectClient() {
 		log.Fatalf("did not connect: %v", err)
 	}
 	ProjectServiceClient = project.NewProjectServiceClient(conn)
+	TaskServiceClient = task.NewTaskServiceClient(conn)
 }
