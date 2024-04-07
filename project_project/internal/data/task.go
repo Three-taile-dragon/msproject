@@ -1,4 +1,4 @@
-package task
+package data
 
 // MsTaskStagesTemplate 任务类型
 type MsTaskStagesTemplate struct {

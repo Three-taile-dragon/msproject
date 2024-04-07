@@ -9,10 +9,12 @@ import (
 	"test.com/project_common/discovery"
 	"test.com/project_common/logs"
 	"test.com/project_grpc/project"
+	"test.com/project_grpc/task"
 	"test.com/project_project/config"
 	"test.com/project_project/internal/interceptor"
 	"test.com/project_project/internal/rpc"
-	projectServiceV1 "test.com/project_project/pkg/service/project.service.v1"
+	project_service_v1 "test.com/project_project/pkg/service/project.service.v1"
+	task_service_v1 "test.com/project_project/pkg/service/task.service.v1"
 )
 
 // Router 接口
@@ -61,7 +63,8 @@ func RegisterGrpc() *grpc.Server {
 	c := gRPCConfig{
 		Addr: config.C.GC.Addr,
 		RegisterFunc: func(g *grpc.Server) {
-			project.RegisterProjectServiceServer(g, projectServiceV1.New())
+			project.RegisterProjectServiceServer(g, project_service_v1.New())
+			task.RegisterTaskServiceServer(g, task_service_v1.New())
 		}}
 	// grpc 拦截器	自定义统一缓存
 	cacheInterceptor := interceptor.New()

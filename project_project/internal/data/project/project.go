@@ -3,7 +3,7 @@ package project
 import (
 	"test.com/project_common/encrypts"
 	"test.com/project_common/tms"
-	"test.com/project_project/internal/data/task"
+	"test.com/project_project/internal/data"
 	"test.com/project_project/pkg/model"
 )
 
@@ -124,12 +124,12 @@ type ProjectTemplateAll struct {
 	Cover            string
 	MemberCode       string
 	IsSystem         int
-	TaskStages       []*task.TaskStagesOnlyName
+	TaskStages       []*data.TaskStagesOnlyName
 	Code             string
 }
 
 // Convert 返回时加密ID
-func (pt ProjectTemplate) Convert(taskStages []*task.TaskStagesOnlyName) *ProjectTemplateAll {
+func (pt ProjectTemplate) Convert(taskStages []*data.TaskStagesOnlyName) *ProjectTemplateAll {
 	organizationCode, _ := encrypts.EncryptInt64(pt.OrganizationCode, model.AESKey)
 	memberCode, _ := encrypts.EncryptInt64(pt.MemberCode, model.AESKey)
 	code, _ := encrypts.EncryptInt64(int64(pt.Id), model.AESKey)
