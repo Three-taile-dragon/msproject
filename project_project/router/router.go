@@ -8,7 +8,7 @@ import (
 	"net"
 	"test.com/project_common/discovery"
 	"test.com/project_common/logs"
-	"test.com/project_grpc/project"
+	project_service "test.com/project_grpc/project"
 	"test.com/project_grpc/task"
 	"test.com/project_project/config"
 	"test.com/project_project/internal/interceptor"
@@ -63,7 +63,7 @@ func RegisterGrpc() *grpc.Server {
 	c := gRPCConfig{
 		Addr: config.C.GC.Addr,
 		RegisterFunc: func(g *grpc.Server) {
-			project.RegisterProjectServiceServer(g, project_service_v1.New())
+			project_service.RegisterProjectServiceServer(g, project_service_v1.New())
 			task.RegisterTaskServiceServer(g, task_service_v1.New())
 		}}
 	// grpc 拦截器	自定义统一缓存

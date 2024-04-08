@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-func (ps *ProjectService) CollectProject(ctx context.Context, msg *project.ProjectRpcMessage) (*project.CollectProjectResponse, error) {
+func (ps *ProjectService) CollectProject(ctx context.Context, msg *project_service_v1.ProjectRpcMessage) (*project_service_v1.CollectProjectResponse, error) {
 	c, cancel := context.WithTimeout(context.Background(), 2*time.Second) //编写上下文 最多允许两秒超时
 	defer cancel()
 	cipherIdCodeStr, _ := encrypts.Decrypt(msg.ProjectCode, model.AESKey)
@@ -42,5 +42,5 @@ func (ps *ProjectService) CollectProject(ctx context.Context, msg *project.Proje
 		}
 	}
 
-	return &project.CollectProjectResponse{}, nil
+	return &project_service_v1.CollectProjectResponse{}, nil
 }

@@ -71,3 +71,8 @@ func (m *MemberDao) FindMemberById(ctx context.Context, id int64) (*member.Membe
 	}
 	return mem, err
 }
+
+func (m *MemberDao) FindMemberByIds(ctx context.Context, mIds []int64) (list []*member.Member, err error) {
+	err = m.conn.Session(ctx).Model(&member.Member{}).Where("id in (?)", mIds).Find(&list).Error
+	return
+}

@@ -372,3 +372,27 @@ func (ls *LoginService) FindMemInfoById(ctx context.Context, req *login.UserMess
 	}
 	return memMessage, nil
 }
+
+func (ls *LoginService) FindMemInfoByIds(ctx context.Context, req *login.UserMessage) (*login.MemberMessageList, error) {
+	c := context.Background()
+	memberList, err := ls.memberRepo.FindMemberByIds(c, req.MIds)
+	if err != nil {
+		zap.L().Error("login FindMemInfoByIds memberRepo.FindMemberByIds error", zap.Error(err))
+		return nil, errs.GrpcError(model.DBError)
+	}
+	var memMsgs []*login.MemberMessage
+	err = copier.Copy(&memMsgs, memberList)
+
+	mMap := make(map[int64]*member.Member)
+	for _, v := range memberList {
+		mMap[v.Id] = v
+	}
+
+	for _, v := range memMsgs {
+		m := mMap[v.Id]
+		v.CreateTime = tms.FormatByMill(m.CreateTime)
+		v.Code = encrypts.EncryptInt64NoErr(v.Id)
+	}
+
+	return &login.MemberMessageList{List: memMsgs}, nil
+}

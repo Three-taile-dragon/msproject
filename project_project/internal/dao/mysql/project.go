@@ -109,3 +109,10 @@ func (p *ProjectDao) CancelCollectProject(ctx context.Context, projectCode int64
 func (p *ProjectDao) UpdateProject(ctx context.Context, proj *project.Project) error {
 	return p.conn.Session(ctx).Updates(&proj).Error
 }
+
+func (p *ProjectDao) FindProjectByPid(ctx context.Context, projectCode int64) (list []*project.ProjectMember, total int64, err error) {
+	session := p.conn.Session(ctx)
+	err = session.Model(&project.ProjectMember{}).Where("project_code = ?", projectCode).Find(&list).Error
+	err = session.Model(&project.ProjectMember{}).Where("project_code = ?", projectCode).Count(&total).Error
+	return
+}

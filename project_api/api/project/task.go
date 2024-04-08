@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"test.com/project_api/api/rpc"
 	"test.com/project_api/pkg/model"
+	"test.com/project_api/pkg/model/project"
 	"test.com/project_api/pkg/model/tasks"
 	common "test.com/project_common"
 	"test.com/project_common/errs"
@@ -63,6 +64,45 @@ func (t HandlerTask) taskStages(c *gin.Context) {
 	c.JSON(http.StatusOK, result.Success(gin.H{
 		"list":  list,
 		"total": stages.Total,
+		"page":  page.Page,
+	}))
+
+}
+
+func (t *HandlerTask) memberProjectList(c *gin.Context) {
+	result := &common.Result{}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	//获取参数	校验参数合法性
+	projectCode := c.PostForm("projectCode")
+	page := &model.Page{}
+	page.Bind(c)
+	//调用grpc
+	msg := &task.TaskReqMessage{
+		MemberId:    c.GetInt64("memberId"),
+		ProjectCode: projectCode,
+		Page:        page.Page,
+		PageSize:    page.PageSize,
+	}
+	resp, err := rpc.TaskServiceClient.MemberProjectList(ctx, msg)
+	if err != nil {
+		code, msg := errs.ParseGrpcError(err)
+		c.JSON(http.StatusOK, result.Fail(code, msg))
+	}
+	//处理响应
+	var list []*project.MemberProjectResp
+	err = copier.Copy(&list, resp.List)
+	if list == nil {
+		list = []*project.MemberProjectResp{}
+	}
+
+	if err != nil {
+		zap.L().Error("task memberProjectList MemberProjectResp Copy error", zap.Error(err))
+		c.JSON(http.StatusOK, result.Fail(errs.ParseGrpcError(err)))
+	}
+	c.JSON(http.StatusOK, result.Success(gin.H{
+		"list":  list,
+		"total": resp.Total,
 		"page":  page.Page,
 	}))
 

@@ -25,7 +25,7 @@ import (
 
 // ProjectService grpc 登陆服务 实现
 type ProjectService struct {
-	project.UnimplementedProjectServiceServer
+	project_service_v1.UnimplementedProjectServiceServer
 	cache                  repo.Cache
 	transaction            tran.Transaction
 	menuRepo               repo.MenuRepo
@@ -46,7 +46,7 @@ func New() *ProjectService {
 		taskStagesRepo:         mysql.NewTaskStagesDao(),
 	}
 }
-func (ps *ProjectService) Index(ctx context.Context, req *project.IndexRequest) (*project.IndexResponse, error) {
+func (ps *ProjectService) Index(ctx context.Context, req *project_service_v1.IndexRequest) (*project_service_v1.IndexResponse, error) {
 	c := context.Background()
 	pms, err := ps.menuRepo.FindMenus(c)
 	if err != nil {
@@ -54,16 +54,16 @@ func (ps *ProjectService) Index(ctx context.Context, req *project.IndexRequest) 
 		return nil, errs.GrpcError(model.DBError)
 	}
 	childs := menu.CovertChild(pms)
-	var mms []*project.MenuMessage
+	var mms []*project_service_v1.MenuMessage
 	err = copier.Copy(&mms, childs)
 	if err != nil {
 		zap.L().Error("project Index Copy error", zap.Error(err))
 		return nil, errs.GrpcError(model.CopyError)
 	}
-	return &project.IndexResponse{Menus: mms}, nil
+	return &project_service_v1.IndexResponse{Menus: mms}, nil
 }
 
-func (ps *ProjectService) FindProjectByMemId(ctx context.Context, req *project.ProjectRpcMessage) (*project.MyProjectResponse, error) {
+func (ps *ProjectService) FindProjectByMemId(ctx context.Context, req *project_service_v1.ProjectRpcMessage) (*project_service_v1.MyProjectResponse, error) {
 	memberId := req.MemberId
 	page := req.Page
 	pageSize := req.PageSize
@@ -108,11 +108,11 @@ func (ps *ProjectService) FindProjectByMemId(ctx context.Context, req *project.P
 	}
 	//如果查询的项目数量为空 则返回空值
 	if pms == nil {
-		return &project.MyProjectResponse{Pm: []*project.ProjectMessage{}, Total: total}, nil
+		return &project_service_v1.MyProjectResponse{Pm: []*project_service_v1.ProjectMessage{}, Total: total}, nil
 	}
 
 	//拷贝数据
-	var pmm []*project.ProjectMessage
+	var pmm []*project_service_v1.ProjectMessage
 	err = copier.Copy(&pmm, pms)
 	if err != nil {
 		zap.L().Error("project FindProjectByMemId Copy error", zap.Error(err))
@@ -130,10 +130,10 @@ func (ps *ProjectService) FindProjectByMemId(ctx context.Context, req *project.P
 		v.Order = int32(pam.Sort)
 		v.CreateTime = tms.FormatByMill(pam.CreateTime)
 	}
-	return &project.MyProjectResponse{Pm: pmm, Total: total}, nil
+	return &project_service_v1.MyProjectResponse{Pm: pmm, Total: total}, nil
 }
 
-func (ps *ProjectService) FindProjectTemplate(ctx context.Context, req *project.ProjectRpcMessage) (*project.ProjectTemplateResponse, error) {
+func (ps *ProjectService) FindProjectTemplate(ctx context.Context, req *project_service_v1.ProjectRpcMessage) (*project_service_v1.ProjectTemplateResponse, error) {
 	//1. 根据viewType去查询项目模板表 得到list
 	organizationCodeStr, _ := encrypts.Decrypt(req.OrganizationCode, model.AESKey) //解密操作
 	organizationCode, _ := strconv.ParseInt(organizationCodeStr, 10, 64)
@@ -170,16 +170,16 @@ func (ps *ProjectService) FindProjectTemplate(ctx context.Context, req *project.
 		ptas = append(ptas, v.Convert(data.CovertProjectMap(tsts)[v.Id]))
 	}
 	//3. 组装数据
-	var pmMsgs []*project.ProjectTemplate
+	var pmMsgs []*project_service_v1.ProjectTemplate
 	err = copier.Copy(&pmMsgs, ptas)
 	if err != nil {
 		zap.L().Error("project FindProjectTemplate Copy error", zap.Error(err))
 		return nil, errs.GrpcError(model.CopyError)
 	}
-	return &project.ProjectTemplateResponse{Ptm: pmMsgs, Total: total}, nil
+	return &project_service_v1.ProjectTemplateResponse{Ptm: pmMsgs, Total: total}, nil
 }
 
-func (ps *ProjectService) SaveProject(ctx context.Context, msg *project.ProjectRpcMessage) (*project.SaveProjectMessage, error) {
+func (ps *ProjectService) SaveProject(ctx context.Context, msg *project_service_v1.ProjectRpcMessage) (*project_service_v1.SaveProjectMessage, error) {
 	organizationCodeStr, _ := encrypts.Decrypt(msg.OrganizationCode, model.AESKey)
 	organizationCode, _ := strconv.ParseInt(organizationCodeStr, 10, 64)
 	templateCodeStr, _ := encrypts.Decrypt(msg.TemplateCode, model.AESKey)
@@ -248,7 +248,7 @@ func (ps *ProjectService) SaveProject(ctx context.Context, msg *project.ProjectR
 		return nil, err
 	}
 	code, _ := encrypts.EncryptInt64(pr.Id, model.AESKey)
-	rsp := &project.SaveProjectMessage{
+	rsp := &project_service_v1.SaveProjectMessage{
 		Id:               pr.Id,
 		Code:             code,
 		OrganizationCode: organizationCodeStr,
@@ -262,7 +262,7 @@ func (ps *ProjectService) SaveProject(ctx context.Context, msg *project.ProjectR
 }
 
 // FindProjectDetail 读取项目
-func (ps *ProjectService) FindProjectDetail(ctx context.Context, msg *project.ProjectRpcMessage) (*project.ProjectDetailMessage, error) {
+func (ps *ProjectService) FindProjectDetail(ctx context.Context, msg *project_service_v1.ProjectRpcMessage) (*project_service_v1.ProjectDetailMessage, error) {
 	c, cancel := context.WithTimeout(context.Background(), 2*time.Second) //编写上下文 最多允许两秒超时
 	defer cancel()
 	cipherIdCodeStr, _ := encrypts.Decrypt(msg.ProjectCode, model.AESKey)
@@ -298,7 +298,7 @@ func (ps *ProjectService) FindProjectDetail(ctx context.Context, msg *project.Pr
 	} else {
 		projectAndMember.Collected = model.NoCollected
 	}
-	var detailMsg = &project.ProjectDetailMessage{}
+	var detailMsg = &project_service_v1.ProjectDetailMessage{}
 	err = copier.Copy(detailMsg, projectAndMember)
 	if err != nil {
 		zap.L().Error("project FindProjectDetail Copy error", zap.Error(err))
@@ -319,7 +319,7 @@ func (ps *ProjectService) FindProjectDetail(ctx context.Context, msg *project.Pr
 //2. 查项目和成员的关联表 查项目的拥有者 去member表查名字
 //3. 查收藏表 判断收藏状态
 
-func (ps *ProjectService) RecycleProject(ctx context.Context, msg *project.ProjectRpcMessage) (*project.RecycleProjectResponse, error) {
+func (ps *ProjectService) RecycleProject(ctx context.Context, msg *project_service_v1.ProjectRpcMessage) (*project_service_v1.RecycleProjectResponse, error) {
 	//项目回收
 	c, cancel := context.WithTimeout(context.Background(), 2*time.Second) //编写上下文 最多允许两秒超时
 	defer cancel()
@@ -335,10 +335,10 @@ func (ps *ProjectService) RecycleProject(ctx context.Context, msg *project.Proje
 		zap.L().Error("project RecycleProject DeleteProject error", zap.Error(err))
 		return nil, errs.GrpcError(model.DBError)
 	}
-	return &project.RecycleProjectResponse{}, nil
+	return &project_service_v1.RecycleProjectResponse{}, nil
 }
 
-func (ps *ProjectService) RecoveryProject(ctx context.Context, msg *project.ProjectRpcMessage) (*project.RecoveryProjectResponse, error) {
+func (ps *ProjectService) RecoveryProject(ctx context.Context, msg *project_service_v1.ProjectRpcMessage) (*project_service_v1.RecoveryProjectResponse, error) {
 	//从回收站恢复项目
 	c, cancel := context.WithTimeout(context.Background(), 2*time.Second) //编写上下文 最多允许两秒超时
 	defer cancel()
@@ -354,10 +354,10 @@ func (ps *ProjectService) RecoveryProject(ctx context.Context, msg *project.Proj
 		zap.L().Error("project RecycleProject DeleteProject error", zap.Error(err))
 		return nil, errs.GrpcError(model.DBError)
 	}
-	return &project.RecoveryProjectResponse{}, nil
+	return &project_service_v1.RecoveryProjectResponse{}, nil
 }
 
-func (ps *ProjectService) UpdateProject(ctx context.Context, msg *project.UpdateProjectMessage) (*project.UpdateProjectResponse, error) {
+func (ps *ProjectService) UpdateProject(ctx context.Context, msg *project_service_v1.UpdateProjectMessage) (*project_service_v1.UpdateProjectResponse, error) {
 	c, cancel := context.WithTimeout(context.Background(), 2*time.Second) //编写上下文 最多允许两秒超时
 	defer cancel()
 	projectCodeStr, _ := encrypts.Decrypt(msg.ProjectCode, model.AESKey)
@@ -381,5 +381,5 @@ func (ps *ProjectService) UpdateProject(ctx context.Context, msg *project.Update
 		zap.L().Error("project UpdateProject UpdateProject error", zap.Error(err))
 		return nil, errs.GrpcError(model.DBError)
 	}
-	return &project.UpdateProjectResponse{}, nil
+	return &project_service_v1.UpdateProjectResponse{}, nil
 }

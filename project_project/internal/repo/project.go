@@ -20,6 +20,7 @@ type ProjectRepo interface {
 	CollectProject(ctx context.Context, pc *project.ProjectCollection) error
 	CancelCollectProject(ctx context.Context, projectCode int64, memberId int64) error
 	UpdateProject(ctx context.Context, proj *project.Project) error
+	FindProjectByPid(ctx context.Context, projectCode int64) (list []*project.ProjectMember, total int64, err error)
 }
 
 // ProjectTemplateRepo 查询项目模板
