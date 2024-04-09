@@ -13,6 +13,7 @@ import (
 	"test.com/project_project/internal/dao/mysql"
 	"test.com/project_project/internal/data"
 	pro "test.com/project_project/internal/data/project"
+	"test.com/project_project/internal/database"
 	"test.com/project_project/internal/database/tran"
 	"test.com/project_project/internal/repo"
 	"test.com/project_project/internal/rpc"
@@ -198,4 +199,114 @@ func (t *TaskService) TaskList(ctx context.Context, msg *task.TaskReqMessage) (*
 	var taskMessageList []*task.TaskMessage
 	_ = copier.Copy(&taskMessageList, taskDisplayList)
 	return &task.TaskListResponse{List: taskMessageList}, nil
+}
+
+func (t *TaskService) SaveTask(ctx context.Context, msg *task.TaskReqMessage) (*task.TaskMessage, error) {
+	// 检查业务逻辑
+	if msg.Name == "" {
+		return nil, errs.GrpcError(model.TaskNameNotNull)
+	}
+	stageCode := encrypts.DecryptNoErr(msg.StageCode)
+	taskStages, err := t.taskStagesRepo.FindById(ctx, int(stageCode))
+	if err != nil {
+		zap.L().Error("task SaveTask taskStagesRepo.FindById error", zap.Error(err))
+		return nil, errs.GrpcError(model.DBError)
+	}
+	if taskStages == nil {
+		return nil, errs.GrpcError(model.TaskStagesNotNull)
+	}
+	projectCode := encrypts.DecryptNoErr(msg.ProjectCode)
+	project, err := t.projectRepo.FindProjectById(ctx, projectCode)
+	if err != nil {
+		zap.L().Error("task SaveTask projectRepo.FindProjectById error", zap.Error(err))
+		return nil, errs.GrpcError(model.DBError)
+	}
+	if project == nil || project.Deleted == model.Deleted {
+		return nil, errs.GrpcError(model.ProjectAlreadyDeleted)
+	}
+	// 保存任务
+	maxIdNum, err := t.taskRepo.FindTaskMaxIdNum(ctx, projectCode)
+	if err != nil {
+		zap.L().Error("task SaveTask taskRepo.FindTaskMaxIdNum error", zap.Error(err))
+		return nil, errs.GrpcError(model.DBError)
+	}
+	// 对未查询到的情况 进行处理
+	if maxIdNum == nil {
+		a := 0
+		maxIdNum = &a
+	}
+
+	maxSort, err := t.taskRepo.FindTaskSort(ctx, projectCode, stageCode)
+	if err != nil {
+		zap.L().Error("task SaveTask taskRepo.FindTaskSort error", zap.Error(err))
+		return nil, errs.GrpcError(model.DBError)
+	}
+
+	// 对未查询到的情况 进行处理
+	if maxSort == nil {
+		a := 0
+		maxSort = &a
+	}
+
+	assignTo := encrypts.DecryptNoErr(msg.AssignTo)
+	ts := &data.Task{
+		Name:        msg.Name,
+		CreateTime:  time.Now().UnixMilli(),
+		CreateBy:    msg.MemberId,
+		AssignTo:    assignTo,
+		ProjectCode: projectCode,
+		StageCode:   int(stageCode),
+		IdNum:       *maxIdNum + 1,
+		Private:     project.OpenTaskPrivate,
+		Sort:        *maxSort + 1,
+		BeginTime:   time.Now().UnixMilli(),
+		EndTime:     time.Now().Add(2 * 24 * time.Hour).UnixMilli(),
+	}
+
+	// 使用事务操作
+	err = t.transaction.Action(func(conn database.DbConn) error {
+		err = t.taskRepo.SaveTask(ctx, conn, ts)
+		if err != nil {
+			zap.L().Error("task SaveTask taskRepo.SaveTask error", zap.Error(err))
+			return errs.GrpcError(model.DBError)
+		}
+		tm := &data.TaskMember{
+			MemberCode: assignTo,
+			TaskCode:   ts.Id,
+			JoinTime:   time.Now().UnixMilli(),
+			IsOwner:    model.Owner,
+		}
+		//  判断是否是执行者
+		if assignTo == msg.MemberId {
+			tm.IsExecutor = model.Executor
+		} else {
+			tm.IsExecutor = model.NoExecutor
+		}
+
+		err = t.taskRepo.SaveTaskMember(ctx, conn, tm)
+		if err != nil {
+			zap.L().Error("task SaveTask taskRepo.SaveTaskMember error", zap.Error(err))
+			return errs.GrpcError(model.DBError)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	// 转换格式 返回
+	display := ts.ToTaskDisplay()
+
+	member, err := rpc.LoginServiceClient.FindMemInfoById(ctx, &login.UserMessage{MemId: assignTo})
+	if err != nil {
+		return nil, err
+	}
+	display.Executor = data.Executor{
+		Name:   member.Name,
+		Avatar: member.Avatar,
+		Code:   member.Code,
+	}
+
+	tm := &task.TaskMessage{}
+	_ = copier.Copy(tm, display)
+	return tm, nil
 }

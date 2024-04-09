@@ -2,7 +2,9 @@ package mysql
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"gorm.io/gorm"
 	"test.com/project_project/internal/data/project"
 	"test.com/project_project/internal/database"
 	"test.com/project_project/internal/database/gorms"
@@ -114,5 +116,14 @@ func (p *ProjectDao) FindProjectByPid(ctx context.Context, projectCode int64) (l
 	session := p.conn.Session(ctx)
 	err = session.Model(&project.ProjectMember{}).Where("project_code = ?", projectCode).Find(&list).Error
 	err = session.Model(&project.ProjectMember{}).Where("project_code = ?", projectCode).Count(&total).Error
+	return
+}
+
+func (p *ProjectDao) FindProjectById(ctx context.Context, projectCode int64) (pj *project.Project, err error) {
+	session := p.conn.Session(ctx)
+	err = session.Where("id = ?", projectCode).Find(&pj).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		err = nil
+	}
 	return
 }

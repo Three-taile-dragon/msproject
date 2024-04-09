@@ -134,3 +134,38 @@ func (t *HandlerTask) taskList(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, result.Success(taskDisplayList))
 }
+
+func (t *HandlerTask) saveTask(c *gin.Context) {
+	result := &common.Result{}
+	var req *tasks.TaskSaveReq
+	err := c.ShouldBind(&req)
+	if err != nil {
+		c.JSON(http.StatusOK, result.Fail(http.StatusBadRequest, "参数格式有误"))
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	msg := &task.TaskReqMessage{
+		ProjectCode: req.ProjectCode,
+		Name:        req.Name,
+		StageCode:   req.StageCode,
+		AssignTo:    req.AssignTo,
+		MemberId:    c.GetInt64("memberId"),
+	}
+	taskMessage, err := rpc.TaskServiceClient.SaveTask(ctx, msg)
+	if err != nil {
+		code, msg := errs.ParseGrpcError(err)
+		c.JSON(http.StatusOK, result.Fail(code, msg))
+	}
+	td := &tasks.TaskDisplay{}
+	_ = copier.Copy(td, taskMessage)
+	if td != nil {
+		if td.Tags == nil {
+			td.Tags = []int{}
+		}
+		if td.ChildCount == nil {
+			td.ChildCount = []int{}
+		}
+	}
+	c.JSON(http.StatusOK, result.Success(td))
+}
