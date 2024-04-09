@@ -107,3 +107,30 @@ func (t *HandlerTask) memberProjectList(c *gin.Context) {
 	}))
 
 }
+
+func (t *HandlerTask) taskList(c *gin.Context) {
+	result := &common.Result{}
+	stageCode := c.PostForm("stageCode")
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	list, err := rpc.TaskServiceClient.TaskList(ctx, &task.TaskReqMessage{StageCode: stageCode})
+	if err != nil {
+		code, msg := errs.ParseGrpcError(err)
+		c.JSON(http.StatusOK, result.Fail(code, msg))
+	}
+	var taskDisplayList []*tasks.TaskDisplay
+	_ = copier.Copy(&taskDisplayList, list.List)
+	if taskDisplayList == nil {
+		taskDisplayList = []*tasks.TaskDisplay{}
+	}
+	// 返回给前端的数据，一定不能是 null
+	for _, v := range taskDisplayList {
+		if v.Tags == nil {
+			v.Tags = []int{}
+		}
+		if v.ChildCount == nil {
+			v.ChildCount = []int{}
+		}
+	}
+	c.JSON(http.StatusOK, result.Success(taskDisplayList))
+}

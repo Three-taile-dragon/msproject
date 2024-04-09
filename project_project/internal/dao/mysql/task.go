@@ -6,29 +6,18 @@ import (
 	"test.com/project_project/internal/database/gorms"
 )
 
-type TaskStagesTemplateDao struct {
+type TaskDao struct {
 	conn *gorms.GormConn
 }
 
-func (t *TaskStagesTemplateDao) FindInProTemIds(ctx context.Context, ids []int) ([]data.MsTaskStagesTemplate, error) {
-	var tsts []data.MsTaskStagesTemplate
-	session := t.conn.Session(ctx)
-	err := session.Where("project_template_code in ?", ids).Find(&tsts).Error
-	return tsts, err
-}
-
-func (t *TaskStagesTemplateDao) FindByProjectTemplateId(ctx context.Context, projectTemplateCode int) (list []*data.MsTaskStagesTemplate, err error) {
-	session := t.conn.Session(ctx)
-	err = session.
-		Model(&data.MsTaskStagesTemplate{}).
-		Where("project_template_code = ?", projectTemplateCode).
-		Order("sort desc,id asc").
-		Find(&list).Error
-	return list, err
-}
-
-func NewTaskStagesTemplateDao() *TaskStagesTemplateDao {
-	return &TaskStagesTemplateDao{
+func NewTaskDao() *TaskDao {
+	return &TaskDao{
 		conn: gorms.New(),
 	}
+}
+
+func (t TaskDao) FindTaskByStageCode(ctx context.Context, stageCode int) (list []*data.Task, err error) {
+	session := t.conn.Session(ctx)
+	err = session.Model(&data.Task{}).Where("stage_code = ? and deleted = 0", stageCode).Order("sort asc").Find(&list).Error
+	return
 }

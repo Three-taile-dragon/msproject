@@ -380,6 +380,11 @@ func (ls *LoginService) FindMemInfoByIds(ctx context.Context, req *login.UserMes
 		zap.L().Error("login FindMemInfoByIds memberRepo.FindMemberByIds error", zap.Error(err))
 		return nil, errs.GrpcError(model.DBError)
 	}
+
+	if memberList == nil || len(memberList) <= 0 {
+		return &login.MemberMessageList{List: nil}, nil
+	}
+
 	var memMsgs []*login.MemberMessage
 	err = copier.Copy(&memMsgs, memberList)
 

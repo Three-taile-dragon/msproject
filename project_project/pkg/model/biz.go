@@ -35,3 +35,13 @@ const (
 	NoOwner = iota
 	Owner
 )
+
+const (
+	NoExecutor = iota
+	Executor
+)
+
+const (
+	NoCanRead = iota
+	CanRead
+)

@@ -29,6 +29,8 @@ type TaskService struct {
 	projectTemplateRepo    repo.ProjectTemplateRepo
 	taskStagesTemplateRepo repo.TaskStagesTemplateRepo
 	taskStagesRepo         repo.TaskStagesRepo
+	taskRepo               repo.TaskRepo
+	taskMemberRepo         repo.TaskMemberRepo
 }
 
 func New() *TaskService {
@@ -39,6 +41,8 @@ func New() *TaskService {
 		projectTemplateRepo:    mysql.NewProjectTemplateDao(),
 		taskStagesTemplateRepo: mysql.NewTaskStagesTemplateDao(),
 		taskStagesRepo:         mysql.NewTaskStagesDao(),
+		taskRepo:               mysql.NewTaskDao(),
+		taskMemberRepo:         mysql.NewTaskMemberDao(),
 	}
 }
 
@@ -132,4 +136,66 @@ func (t *TaskService) MemberProjectList(ctx context.Context, msg *task.TaskReqMe
 
 	return &task.MemberProjectResponse{List: list, Total: total}, nil
 
+}
+
+func (t *TaskService) TaskList(ctx context.Context, msg *task.TaskReqMessage) (*task.TaskListResponse, error) {
+	stageCode := encrypts.DecryptNoErr(msg.StageCode)
+	c, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	// 查找 taskList
+	taskList, err := t.taskRepo.FindTaskByStageCode(c, int(stageCode))
+	if err != nil {
+		zap.L().Error("task TaskList taskRepo.FindTaskByStageCode error", zap.Error(err))
+		return nil, errs.GrpcError(model.DBError)
+	}
+
+	var taskDisplayList []*data.TaskDisplay
+
+	var mIds []int64
+
+	for _, v := range taskList {
+		display := v.ToTaskDisplay()
+		if v.Private == 1 {
+			// 代表隐私模式
+			taskMember, err := t.taskMemberRepo.FindTaskMemberByTaskId(c, v.Id, msg.MemberId)
+			if err != nil {
+				zap.L().Error("task TaskList taskMemberRepo.FindTaskMemberByTaskId error", zap.Error(err))
+				return nil, errs.GrpcError(model.DBError)
+			}
+			if taskMember != nil {
+				display.CanRead = model.CanRead
+			} else {
+				display.CanRead = model.NoCanRead
+			}
+		}
+		taskDisplayList = append(taskDisplayList, display)
+		mIds = append(mIds, v.AssignTo)
+	}
+
+	if mIds == nil || len(mIds) <= 0 {
+		return &task.TaskListResponse{List: nil}, nil
+	}
+
+	messageList, err2 := rpc.LoginServiceClient.FindMemInfoByIds(c, &login.UserMessage{MIds: mIds})
+	if err2 != nil {
+		zap.L().Error("task TaskList LoginServiceClient.FindMemInfoByIds error", zap.Error(err2))
+		return nil, err2
+	}
+	memberMap := make(map[int64]*login.MemberMessage)
+	for _, v := range messageList.List {
+		memberMap[v.Id] = v
+	}
+
+	for _, v := range taskDisplayList {
+		member := memberMap[encrypts.DecryptNoErr(v.AssignTo)]
+		e := data.Executor{
+			Name:   member.Name,
+			Avatar: member.Avatar,
+		}
+		v.Executor = e
+	}
+
+	var taskMessageList []*task.TaskMessage
+	_ = copier.Copy(&taskMessageList, taskDisplayList)
+	return &task.TaskListResponse{List: taskMessageList}, nil
 }
