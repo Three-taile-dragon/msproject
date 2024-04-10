@@ -258,7 +258,7 @@ func (t *TaskService) SaveTask(ctx context.Context, msg *task.TaskReqMessage) (*
 		StageCode:   int(stageCode),
 		IdNum:       *maxIdNum + 1,
 		Private:     project.OpenTaskPrivate,
-		Sort:        *maxSort + 1,
+		Sort:        *maxSort + 65536,
 		BeginTime:   time.Now().UnixMilli(),
 		EndTime:     time.Now().Add(2 * 24 * time.Hour).UnixMilli(),
 	}
@@ -314,53 +314,107 @@ func (t *TaskService) SaveTask(ctx context.Context, msg *task.TaskReqMessage) (*
 func (t *TaskService) TaskSort(ctx context.Context, msg *task.TaskReqMessage) (*task.TaskSortResponse, error) {
 	preTaskCode := encrypts.DecryptNoErr(msg.PreTaskCode)
 	toStageCode := encrypts.DecryptNoErr(msg.ToStageCode)
+	// 原地不动
+	if msg.PreTaskCode == msg.NextTaskCode {
+		return &task.TaskSortResponse{}, nil
+	}
+	err := t.sortTask(preTaskCode, msg.NextTaskCode, toStageCode)
+	if err != nil {
+		return nil, err
+	}
+	return &task.TaskSortResponse{}, nil
+
+}
+
+func (t *TaskService) sortTask(preTaskCode int64, nextTaskCode string, toStageCode int64) error {
+	// 1.从小到大排
+	// 2.原有的顺序 比如 1 2 3 4 5  4排到2 前面去 4的序号在1和2之间 如果4是最后一个 保证 4 比所有的序号都大 如果排到第一位 直接置为0
+
 	c, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	ts, err := t.taskRepo.FindTaskById(c, preTaskCode)
 	if err != nil {
-		zap.L().Error("task TaskSort taskRepo.FindTaskById error", zap.Error(err))
-		return nil, errs.GrpcError(model.DBError)
+		zap.L().Error("task sortTask taskRepo.FindTaskById error", zap.Error(err))
+		return errs.GrpcError(model.DBError)
 	}
 
 	// 事务操作
 	err = t.transaction.Action(func(conn database.DbConn) error {
 		// 如果是相等的不需要进行改变
-		isChange := false
-		if ts.StageCode != int(toStageCode) {
-			ts.StageCode = int(toStageCode)
-			isChange = true
-		}
-		if msg.NextTaskCode != "" {
+		ts.StageCode = int(toStageCode)
+		if nextTaskCode != "" {
 			// 意味要进行排序的替换
-			nextTaskCode := encrypts.DecryptNoErr(msg.NextTaskCode)
+			nextTaskCode := encrypts.DecryptNoErr(nextTaskCode)
 			next, err := t.taskRepo.FindTaskById(c, nextTaskCode)
 			if err != nil {
 				zap.L().Error("task TaskSort taskRepo.FindTaskById error", zap.Error(err))
 				return errs.GrpcError(model.DBError)
 			}
-			sort := ts.Sort
-			ts.Sort = next.Sort
-			next.Sort = sort
-			err = t.taskRepo.UpdateTaskSort(c, conn, next)
+			//next.Sort 要找到比它小的那个任务
+			prepre, err := t.taskRepo.FindTaskByStageCodeLtSort(c, next.StageCode, next.Sort)
 			if err != nil {
-				zap.L().Error("task TaskSort taskRepo.UpdateTaskSort error", zap.Error(err))
+				zap.L().Error("task TaskSort taskRepo.FindTaskByStageCodeLtSort error", zap.Error(err))
 				return errs.GrpcError(model.DBError)
 			}
-			isChange = true
+			if prepre != nil {
+				ts.Sort = (prepre.Sort + next.Sort) / 2
+			}
+			if prepre == nil {
+				ts.Sort = 0
+			}
+			//sort := ts.Sort
+			//ts.Sort = next.Sort
+			//next.Sort = sort
+			//err = t.taskRepo.UpdateTaskSort(c, conn, next)
+			//if err != nil {
+			//	zap.L().Error("task TaskSort taskRepo.UpdateTaskSort error", zap.Error(err))
+			//	return errs.GrpcError(model.DBError)
+			//}
+		} else {
+			maxSort, err := t.taskRepo.FindTaskSort(c, ts.ProjectCode, int64(ts.StageCode))
+			if err != nil {
+				zap.L().Error("task TaskSort taskRepo.FindTaskSort error", zap.Error(err))
+				return errs.GrpcError(model.DBError)
+			}
+			if maxSort == nil {
+				a := 0
+				maxSort = &a
+			}
+			ts.Sort = *maxSort + 65536
 		}
 
-		if isChange {
-			err = t.taskRepo.UpdateTaskSort(c, conn, ts)
+		if ts.Sort < 50 {
+			//重置排序
+			err = t.resetSort(toStageCode)
 			if err != nil {
-				zap.L().Error("task TaskSort taskRepo.UpdateTaskSort error", zap.Error(err))
+				zap.L().Error("task TaskSort resetSort error", zap.Error(err))
 				return errs.GrpcError(model.DBError)
 			}
+			return t.sortTask(preTaskCode, nextTaskCode, toStageCode)
+		}
+
+		err = t.taskRepo.UpdateTaskSort(c, conn, ts)
+		if err != nil {
+			zap.L().Error("task TaskSort taskRepo.UpdateTaskSort error", zap.Error(err))
+			return errs.GrpcError(model.DBError)
 		}
 		return nil
 	})
+	return err
+}
+
+func (t *TaskService) resetSort(stageCode int64) error {
+	list, err := t.taskRepo.FindTaskByStageCode(context.Background(), int(stageCode))
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return &task.TaskSortResponse{}, nil
+	return t.transaction.Action(func(conn database.DbConn) error {
+		iSort := 65536
+		for index, v := range list {
+			v.Sort = (index + 1) * iSort
+			return t.taskRepo.UpdateTaskSort(context.Background(), conn, v)
+		}
+		return nil
+	})
 
 }

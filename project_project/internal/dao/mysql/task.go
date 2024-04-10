@@ -2,6 +2,8 @@ package mysql
 
 import (
 	"context"
+	"errors"
+	"gorm.io/gorm"
 	"test.com/project_project/internal/data"
 	"test.com/project_project/internal/database"
 	"test.com/project_project/internal/database/gorms"
@@ -63,4 +65,14 @@ func (t TaskDao) UpdateTaskSort(ctx context.Context, conn database.DbConn, ts *d
 	t.conn = conn.(*gorms.GormConn)
 	err := t.conn.Tx(ctx).Where("id = ?", ts.Id).Select("sort", "stage_code").Updates(&ts).Error
 	return err
+}
+
+// FindTaskByStageCodeLtSort 通过 StageCode 查询 sort 之前带最小序号的步骤
+func (t TaskDao) FindTaskByStageCodeLtSort(ctx context.Context, stageCode int, sort int) (ts *data.Task, err error) {
+	session := t.conn.Session(ctx)
+	err = session.Where("stage_code = ? and sort < ?", stageCode, sort).Order("sort desc").Limit(1).Find(&ts).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	return
 }
