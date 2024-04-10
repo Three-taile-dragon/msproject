@@ -113,7 +113,7 @@ func (t *HandlerTask) taskList(c *gin.Context) {
 	stageCode := c.PostForm("stageCode")
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	list, err := rpc.TaskServiceClient.TaskList(ctx, &task.TaskReqMessage{StageCode: stageCode})
+	list, err := rpc.TaskServiceClient.TaskList(ctx, &task.TaskReqMessage{StageCode: stageCode, MemberId: c.GetInt64("memberId")})
 	if err != nil {
 		code, msg := errs.ParseGrpcError(err)
 		c.JSON(http.StatusOK, result.Fail(code, msg))
@@ -168,4 +168,27 @@ func (t *HandlerTask) saveTask(c *gin.Context) {
 		}
 	}
 	c.JSON(http.StatusOK, result.Success(td))
+}
+
+func (t *HandlerTask) taskSort(c *gin.Context) {
+	result := &common.Result{}
+	var req *tasks.TaskSortReq
+	err := c.ShouldBind(&req)
+	if err != nil {
+		c.JSON(http.StatusOK, result.Fail(http.StatusBadRequest, "参数格式有误"))
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	msg := &task.TaskReqMessage{
+		PreTaskCode:  req.PreTaskCode,
+		NextTaskCode: req.NextTaskCode,
+		ToStageCode:  req.ToStageCode,
+	}
+	_, err = rpc.TaskServiceClient.TaskSort(ctx, msg)
+	if err != nil {
+		code, msg := errs.ParseGrpcError(err)
+		c.JSON(http.StatusOK, result.Fail(code, msg))
+	}
+	c.JSON(http.StatusOK, result.Success([]int{}))
 }
