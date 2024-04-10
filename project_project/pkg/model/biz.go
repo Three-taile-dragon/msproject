@@ -45,3 +45,8 @@ const (
 	NoCanRead = iota
 	CanRead
 )
+
+const (
+	UnDone = iota
+	Done
+)

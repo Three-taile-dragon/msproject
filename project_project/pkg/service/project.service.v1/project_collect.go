@@ -7,7 +7,7 @@ import (
 	"test.com/project_common/encrypts"
 	"test.com/project_common/errs"
 	"test.com/project_grpc/project"
-	pro "test.com/project_project/internal/data/project"
+	pro "test.com/project_project/internal/data"
 	"test.com/project_project/pkg/model"
 	"time"
 )

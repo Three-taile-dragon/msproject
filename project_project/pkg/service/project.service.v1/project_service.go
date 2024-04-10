@@ -14,7 +14,6 @@ import (
 	"test.com/project_project/internal/dao/mysql"
 	"test.com/project_project/internal/data"
 	"test.com/project_project/internal/data/menu"
-	pro "test.com/project_project/internal/data/project"
 	"test.com/project_project/internal/database"
 	"test.com/project_project/internal/database/tran"
 	"test.com/project_project/internal/repo"
@@ -67,7 +66,7 @@ func (ps *ProjectService) FindProjectByMemId(ctx context.Context, req *project_s
 	memberId := req.MemberId
 	page := req.Page
 	pageSize := req.PageSize
-	var pms []*pro.ProjectAndMember
+	var pms []*data.ProjectAndMember
 	var total int64
 	var err error
 	if req.SelectBy == "" || req.SelectBy == "my" {
@@ -91,7 +90,7 @@ func (ps *ProjectService) FindProjectByMemId(ctx context.Context, req *project_s
 			zap.L().Error("project FindProjectByMemId::FindCollectProjectByMemId error", zap.Error(err))
 			return nil, errs.GrpcError(model.DBError)
 		}
-		var cMap = make(map[int64]*pro.ProjectAndMember)
+		var cMap = make(map[int64]*data.ProjectAndMember)
 		for _, v := range collectPms {
 			cMap[v.Id] = v
 		}
@@ -121,7 +120,7 @@ func (ps *ProjectService) FindProjectByMemId(ctx context.Context, req *project_s
 	for _, v := range pmm {
 		v.Code, _ = encrypts.EncryptInt64(v.Id, model.AESKey)
 		//v.Code = strconv.FormatInt(v.Id, 10)
-		pam := pro.ToMap(pms)[v.Id]
+		pam := data.ToMap(pms)[v.Id]
 		v.AccessControlType = pam.GetAccessControlType()
 		v.OrganizationCode, _ = encrypts.EncryptInt64(pam.OrganizationCode, model.AESKey)
 		//v.OrganizationCode = strconv.FormatInt(pam.OrganizationCode, 10)
@@ -140,7 +139,7 @@ func (ps *ProjectService) FindProjectTemplate(ctx context.Context, req *project_
 	page := req.Page
 	pageSize := req.PageSize
 	//ViewType 	-1 代表查询全部模板
-	var pts []pro.ProjectTemplate
+	var pts []data.ProjectTemplate
 	var total int64
 	var err error
 	if req.ViewType == -1 {
@@ -159,12 +158,12 @@ func (ps *ProjectService) FindProjectTemplate(ctx context.Context, req *project_
 		return nil, errs.GrpcError(model.DBError)
 	}
 	//2. 模型转换 拿到模板id列表，去 任务步骤模板表，去进行查询
-	tsts, err := ps.taskStagesTemplateRepo.FindInProTemIds(ctx, pro.ToProjectTemplateIds(pts))
+	tsts, err := ps.taskStagesTemplateRepo.FindInProTemIds(ctx, data.ToProjectTemplateIds(pts))
 	if err != nil {
 		zap.L().Error("project FindProjectTemplate FindInProTemIds error", zap.Error(err))
 		return nil, errs.GrpcError(model.DBError)
 	}
-	var ptas []*pro.ProjectTemplateAll
+	var ptas []*data.ProjectTemplateAll
 	for _, v := range pts {
 		//改谁做的事一定要交出去
 		ptas = append(ptas, v.Convert(data.CovertProjectMap(tsts)[v.Id]))
@@ -193,7 +192,7 @@ func (ps *ProjectService) SaveProject(ctx context.Context, msg *project_service_
 		return nil, errs.GrpcError(model.DBError)
 	}
 	//1. 保存项目表
-	pr := &pro.Project{
+	pr := &data.Project{
 		Name:              msg.Name,
 		Description:       msg.Description,
 		TemplateCode:      int(templateCode),
@@ -212,7 +211,7 @@ func (ps *ProjectService) SaveProject(ctx context.Context, msg *project_service_
 			zap.L().Error("project SaveProject SaveProject error", zap.Error(err))
 			return errs.GrpcError(model.DBError)
 		}
-		pm := &pro.ProjectMember{
+		pm := &data.ProjectMember{
 			ProjectCode: pr.Id,
 			MemberCode:  msg.MemberId,
 			JoinTime:    time.Now().UnixMilli(),
@@ -362,7 +361,7 @@ func (ps *ProjectService) UpdateProject(ctx context.Context, msg *project_servic
 	defer cancel()
 	projectCodeStr, _ := encrypts.Decrypt(msg.ProjectCode, model.AESKey)
 	projectCode, _ := strconv.ParseInt(projectCodeStr, 10, 64)
-	proj := &pro.Project{
+	proj := &data.Project{
 		Id:                 projectCode,
 		Name:               msg.Name,
 		Description:        msg.Description,
