@@ -24,6 +24,8 @@ message RegisterResponse {
 message LoginRequest {
   string account = 1;
   string password = 2;
+  string token =3;
+  string ip = 4;
 }
 message LoginResponse{
   MemberMessage member = 1;
@@ -77,6 +79,7 @@ message TokenMessage{
 
 message TokenRequest {
   string token =1;
+  string ip = 2;
 }
 
 message UserMessage {

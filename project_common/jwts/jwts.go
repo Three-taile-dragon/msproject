@@ -15,12 +15,13 @@ type JwtToken struct {
 }
 
 // CreateToken 使用jwt生成token
-func CreateToken(val string, atExp time.Duration, secret string, refreshSecret string, rfExp time.Duration) *JwtToken {
+func CreateToken(val string, atExp time.Duration, secret string, refreshSecret string, rfExp time.Duration, ip string) *JwtToken {
 	aExp := time.Now().Add(atExp).Unix()
 	rExp := time.Now().Add(rfExp).Unix()
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"token": val,
 		"exp":   aExp,
+		"ip":    ip,
 	})
 	aToken, _ := accessToken.SignedString([]byte(secret))
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
@@ -38,11 +39,11 @@ func CreateToken(val string, atExp time.Duration, secret string, refreshSecret s
 }
 
 // ParseToken Token解析测试
-func ParseToken(tokenString string, secret string) (string, error) {
+func ParseToken(tokenString string, secret string, ip string) (string, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		// Don't forget to validate the alg is what you expect:
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 
 		// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
@@ -56,6 +57,9 @@ func ParseToken(tokenString string, secret string) (string, error) {
 		exp := int64(claims["exp"].(float64)) //过期时间
 		if exp <= time.Now().Unix() {
 			return "", errors.New("token已经过期")
+		}
+		if claims["ip"] != ip {
+			return "", errors.New("ip不合法")
 		}
 		return val, nil
 	} else {

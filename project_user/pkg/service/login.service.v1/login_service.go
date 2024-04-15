@@ -221,7 +221,8 @@ func (ls *LoginService) Login(ctx context.Context, req *login.LoginRequest) (*lo
 	memIdStr := strconv.FormatInt(mem.Id, 10)
 	exp := time.Duration(config.C.JC.AccessExp*3600*24) * time.Second
 	rExp := time.Duration(config.C.JC.RefreshExp*3600*24) * time.Second
-	token := jwts.CreateToken(memIdStr, exp, config.C.JC.AccessSecret, config.C.JC.RefreshSecret, rExp)
+	token := jwts.CreateToken(memIdStr, exp, config.C.JC.AccessSecret, config.C.JC.RefreshSecret, rExp, req.Ip)
+	// 可以给 token 做加密处理 增加安全性
 	tokenList := &login.TokenMessage{
 		AccessToken:    token.AccessToken,
 		RefreshToken:   token.RefreshToken,
@@ -259,7 +260,7 @@ func (ls *LoginService) TokenVerify(ctx context.Context, msg *login.TokenRequest
 	if strings.Contains(token, "bearer") {
 		token = strings.ReplaceAll(token, "bearer ", "")
 	}
-	parseToken, err := jwts.ParseToken(token, config.C.JC.AccessSecret)
+	parseToken, err := jwts.ParseToken(token, config.C.JC.AccessSecret, msg.Ip)
 	if err != nil {
 		zap.L().Error("login_service Login TokenVerify::ParseToken error", zap.Error(err))
 		return nil, errs.GrpcError(model.NoLogin)

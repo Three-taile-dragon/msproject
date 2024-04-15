@@ -460,12 +460,36 @@ func (t *TaskService) MyTaskList(ctx context.Context, msg *task.TaskReqMessage) 
 		pids = append(pids, v.ProjectCode)
 		mids = append(mids, v.AssignTo)
 	}
-	pList, err := t.projectRepo.FindProjectByIds(ctx, pids)
-	projectMap := data.ToProjectMap(pList)
 
-	mList, err := rpc.LoginServiceClient.FindMemInfoByIds(ctx, &login.UserMessage{
-		MIds: mids,
-	})
+	////1.
+	//pList, err := t.projectRepo.FindProjectByIds(ctx, pids)
+	//projectMap := data.ToProjectMap(pList)
+	////2.	1,2 无关联性 可以并行 go+channel
+	//mList, err := rpc.LoginServiceClient.FindMemInfoByIds(ctx, &login.UserMessage{
+	//	MIds: mids,
+	//})
+
+	//  并行优化 go + channel
+	pListChan := make(chan []*data.Project)
+	defer close(pListChan)
+	mListChan := make(chan *login.MemberMessageList)
+	defer close(mListChan)
+
+	go func() {
+		pList, _ := t.projectRepo.FindProjectByIds(ctx, pids)
+		pListChan <- pList
+	}()
+	go func() {
+		mList, _ := rpc.LoginServiceClient.FindMemInfoByIds(ctx, &login.UserMessage{
+			MIds: mids,
+		})
+		mListChan <- mList
+	}()
+
+	pList := <-pListChan
+	projectMap := data.ToProjectMap(pList)
+	mList := <-mListChan
+
 	mMap := make(map[int64]*login.MemberMessage)
 	for _, v := range mList.List {
 		mMap[v.Id] = v
