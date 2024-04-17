@@ -107,3 +107,11 @@ func (t *TaskDao) FindTaskByAssignTo(ctx context.Context, memberId int64, done i
 	err = session.Model(&data.Task{}).Where("assign_to=? and deleted=0 and done=?", memberId, done).Count(&total).Error
 	return
 }
+
+func (t TaskDao) FindTaskMemberPage(ctx context.Context, taskCode int64, page int64, pageSize int64) (list []*data.TaskMember, total int64, err error) {
+	session := t.conn.Session(ctx)
+	offset := (page - 1) * pageSize
+	err = session.Model(&data.TaskMember{}).Where("task_code = ?", taskCode).Limit(int(pageSize)).Offset(int(offset)).Find(&list).Error
+	err = session.Model(&data.TaskMember{}).Where("task_code = ?", taskCode).Count(&total).Error
+	return
+}
