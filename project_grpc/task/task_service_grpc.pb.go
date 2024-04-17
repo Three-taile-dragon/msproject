@@ -31,6 +31,7 @@ type TaskServiceClient interface {
 	ReadTask(ctx context.Context, in *TaskReqMessage, opts ...grpc.CallOption) (*TaskMessage, error)
 	ListTaskMember(ctx context.Context, in *TaskReqMessage, opts ...grpc.CallOption) (*TaskMemberList, error)
 	TaskLog(ctx context.Context, in *TaskReqMessage, opts ...grpc.CallOption) (*TaskLogList, error)
+	TaskWorkTimeList(ctx context.Context, in *TaskReqMessage, opts ...grpc.CallOption) (*TaskWorkTimeResponse, error)
 }
 
 type taskServiceClient struct {
@@ -122,6 +123,15 @@ func (c *taskServiceClient) TaskLog(ctx context.Context, in *TaskReqMessage, opt
 	return out, nil
 }
 
+func (c *taskServiceClient) TaskWorkTimeList(ctx context.Context, in *TaskReqMessage, opts ...grpc.CallOption) (*TaskWorkTimeResponse, error) {
+	out := new(TaskWorkTimeResponse)
+	err := c.cc.Invoke(ctx, "/task.service.v1.TaskService/TaskWorkTimeList", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // TaskServiceServer is the server API for TaskService service.
 // All implementations must embed UnimplementedTaskServiceServer
 // for forward compatibility
@@ -135,6 +145,7 @@ type TaskServiceServer interface {
 	ReadTask(context.Context, *TaskReqMessage) (*TaskMessage, error)
 	ListTaskMember(context.Context, *TaskReqMessage) (*TaskMemberList, error)
 	TaskLog(context.Context, *TaskReqMessage) (*TaskLogList, error)
+	TaskWorkTimeList(context.Context, *TaskReqMessage) (*TaskWorkTimeResponse, error)
 	mustEmbedUnimplementedTaskServiceServer()
 }
 
@@ -168,6 +179,9 @@ func (UnimplementedTaskServiceServer) ListTaskMember(context.Context, *TaskReqMe
 }
 func (UnimplementedTaskServiceServer) TaskLog(context.Context, *TaskReqMessage) (*TaskLogList, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method TaskLog not implemented")
+}
+func (UnimplementedTaskServiceServer) TaskWorkTimeList(context.Context, *TaskReqMessage) (*TaskWorkTimeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TaskWorkTimeList not implemented")
 }
 func (UnimplementedTaskServiceServer) mustEmbedUnimplementedTaskServiceServer() {}
 
@@ -344,6 +358,24 @@ func _TaskService_TaskLog_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _TaskService_TaskWorkTimeList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TaskReqMessage)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TaskServiceServer).TaskWorkTimeList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/task.service.v1.TaskService/TaskWorkTimeList",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TaskServiceServer).TaskWorkTimeList(ctx, req.(*TaskReqMessage))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // TaskService_ServiceDesc is the grpc.ServiceDesc for TaskService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -386,6 +418,10 @@ var TaskService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "TaskLog",
 			Handler:    _TaskService_TaskLog_Handler,
+		},
+		{
+			MethodName: "TaskWorkTimeList",
+			Handler:    _TaskService_TaskWorkTimeList_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
