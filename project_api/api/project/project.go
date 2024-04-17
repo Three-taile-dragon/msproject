@@ -27,7 +27,7 @@ func (p *HandlerProject) index(c *gin.Context) {
 	result := &common.Result{}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	msg := &project_service_v1.IndexRequest{}
+	msg := &project.IndexRequest{}
 	rsp, err := rpc.ProjectServiceClient.Index(ctx, msg)
 	if err != nil {
 		code, msg := errs.ParseGrpcError(err)
@@ -56,7 +56,7 @@ func (p *HandlerProject) myProjectList(c *gin.Context) {
 	page := &model.Page{}
 	page.Bind(c)
 	selectBy := c.PostForm("selectBy")
-	msg := &project_service_v1.ProjectRpcMessage{
+	msg := &project.ProjectRpcMessage{
 		MemberId:         memberId,
 		MemberName:       memberName,
 		SelectBy:         selectBy,
@@ -100,7 +100,7 @@ func (p *HandlerProject) projectTemplate(c *gin.Context) {
 	page.Bind(c)
 	viewTypeStr := c.PostForm("viewType")
 	viewType, _ := strconv.ParseInt(viewTypeStr, 10, 64)
-	msg := &project_service_v1.ProjectRpcMessage{
+	msg := &project.ProjectRpcMessage{
 		MemberId:         memberId,
 		MemberName:       memberName,
 		ViewType:         int32(viewType),
@@ -149,7 +149,7 @@ func (p *HandlerProject) projectSave(c *gin.Context) {
 		zap.L().Error("项目创建模块_模型绑定失败", zap.Error(err))
 		c.JSON(http.StatusOK, result.Fail(502, "系统内部错误"))
 	}
-	msg := &project_service_v1.ProjectRpcMessage{
+	msg := &project.ProjectRpcMessage{
 		MemberId:         memberId,
 		OrganizationCode: organizationCode,
 		TemplateCode:     req.TemplateCode,
@@ -191,7 +191,7 @@ func (p *HandlerProject) projectRead(c *gin.Context) {
 	defer cancel()
 	memberId := c.GetInt64("memberId")
 	projectCode := c.PostForm("projectCode")
-	detail, err := rpc.ProjectServiceClient.FindProjectDetail(ctx, &project_service_v1.ProjectRpcMessage{ProjectCode: projectCode, MemberId: memberId})
+	detail, err := rpc.ProjectServiceClient.FindProjectDetail(ctx, &project.ProjectRpcMessage{ProjectCode: projectCode, MemberId: memberId})
 	if err != nil {
 		code, msg := errs.ParseGrpcError(err)
 		c.JSON(http.StatusOK, result.Fail(code, msg))
@@ -211,7 +211,7 @@ func (p *HandlerProject) projectRecycle(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	projectCode := c.PostForm("projectCode")
-	_, err := rpc.ProjectServiceClient.RecycleProject(ctx, &project_service_v1.ProjectRpcMessage{ProjectCode: projectCode})
+	_, err := rpc.ProjectServiceClient.RecycleProject(ctx, &project.ProjectRpcMessage{ProjectCode: projectCode})
 	if err != nil {
 		code, msg := errs.ParseGrpcError(err)
 		c.JSON(http.StatusOK, result.Fail(code, msg))
@@ -225,7 +225,7 @@ func (p *HandlerProject) projectRecovery(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	projectCode := c.PostForm("projectCode")
-	_, err := rpc.ProjectServiceClient.RecoveryProject(ctx, &project_service_v1.ProjectRpcMessage{ProjectCode: projectCode})
+	_, err := rpc.ProjectServiceClient.RecoveryProject(ctx, &project.ProjectRpcMessage{ProjectCode: projectCode})
 	if err != nil {
 		code, msg := errs.ParseGrpcError(err)
 		c.JSON(http.StatusOK, result.Fail(code, msg))
@@ -241,7 +241,7 @@ func (p *HandlerProject) projectCollect(c *gin.Context) {
 	projectCode := c.PostForm("projectCode")
 	collectType := c.PostForm("type")
 	memberId := c.GetInt64("memberId")
-	_, err := rpc.ProjectServiceClient.CollectProject(ctx, &project_service_v1.ProjectRpcMessage{ProjectCode: projectCode, CollectType: collectType, MemberId: memberId})
+	_, err := rpc.ProjectServiceClient.CollectProject(ctx, &project.ProjectRpcMessage{ProjectCode: projectCode, CollectType: collectType, MemberId: memberId})
 	if err != nil {
 		code, msg := errs.ParseGrpcError(err)
 		c.JSON(http.StatusOK, result.Fail(code, msg))
@@ -257,7 +257,7 @@ func (p *HandlerProject) projectEdit(c *gin.Context) {
 	var req *pro.ProjectReq
 	_ = c.ShouldBind(&req)
 	memberId := c.GetInt64("memberId")
-	msg := &project_service_v1.UpdateProjectMessage{}
+	msg := &project.UpdateProjectMessage{}
 	err := copier.Copy(msg, req)
 	if err != nil {
 		zap.L().Error("api projectEdit Copy error", zap.Error(err))
@@ -270,4 +270,29 @@ func (p *HandlerProject) projectEdit(c *gin.Context) {
 		c.JSON(http.StatusOK, result.Fail(code, msg))
 	}
 	c.JSON(http.StatusOK, result.Success([]int{}))
+}
+
+func (p *HandlerProject) getLogBySelfProject(c *gin.Context) {
+	result := &common.Result{}
+	//1. 获取参数
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	var page = &model.Page{}
+	page.Bind(c)
+	msg := &project.ProjectRpcMessage{
+		MemberId: c.GetInt64("memberId"),
+		Page:     page.Page,
+		PageSize: page.PageSize,
+	}
+	projectLogResponse, err := rpc.ProjectServiceClient.GetLogBySelfProject(ctx, msg)
+	if err != nil {
+		code, msg := errs.ParseGrpcError(err)
+		c.JSON(http.StatusOK, result.Fail(code, msg))
+	}
+	var list []*pro.ProjectLog
+	_ = copier.Copy(&list, projectLogResponse.List)
+	if list == nil {
+		list = []*pro.ProjectLog{}
+	}
+	c.JSON(http.StatusOK, result.Success(list))
 }

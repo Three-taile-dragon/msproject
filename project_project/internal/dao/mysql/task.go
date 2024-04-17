@@ -115,3 +115,9 @@ func (t TaskDao) FindTaskMemberPage(ctx context.Context, taskCode int64, page in
 	err = session.Model(&data.TaskMember{}).Where("task_code = ?", taskCode).Count(&total).Error
 	return
 }
+
+func (t TaskDao) FindTaskByIds(ctx context.Context, taskIdList []int64) (list []*data.Task, err error) {
+	session := t.conn.Session(ctx)
+	err = session.Model(&data.Task{}).Where("id in (?)", taskIdList).Find(&list).Error
+	return
+}

@@ -28,12 +28,12 @@ func New() *CacheInterceptor {
 	cacheMap := map[string]CacheRespOption{
 		"/project.ProjectService/Index": {
 			path:   "/project.service.v1.ProjectService/Index",
-			typ:    &project_service_v1.IndexResponse{},
+			typ:    &project.IndexResponse{},
 			expire: 1 * time.Hour,
 		},
 		"/project.ProjectService/FindProjectByMemId": {
 			path:   "/project.service.v1.ProjectService/FindProjectByMemId",
-			typ:    &project_service_v1.MyProjectResponse{},
+			typ:    &project.MyProjectResponse{},
 			expire: 10 * time.Minute,
 		},
 	}

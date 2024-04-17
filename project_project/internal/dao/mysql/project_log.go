@@ -44,6 +44,19 @@ func (p *ProjectLogDao) FindLogByTaskCodePage(ctx context.Context, taskCode int6
 	return
 }
 
+func (p *ProjectLogDao) FindLogByMemberCode(ctx context.Context, memberId int64, page int64, pageSize int64) (list []*data.ProjectLog, total int64, err error) {
+	session := p.conn.Session(ctx)
+	offset := (page - 1) * pageSize
+	err = session.Model(&data.ProjectLog{}).
+		Where("member_code=?", memberId).
+		Limit(int(pageSize)).
+		Offset(int(offset)).
+		Order("create_time desc").
+		Find(&list).Error
+	err = session.Model(&data.ProjectLog{}).Where("member_code=?", memberId).Count(&total).Error
+	return
+}
+
 func NewProjectLogDao() *ProjectLogDao {
 	return &ProjectLogDao{
 		conn: gorms.New(),
