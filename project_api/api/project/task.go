@@ -6,12 +6,15 @@ import (
 	"github.com/jinzhu/copier"
 	"go.uber.org/zap"
 	"net/http"
+	"os"
+	"path"
 	"test.com/project_api/api/rpc"
 	"test.com/project_api/pkg/model"
 	"test.com/project_api/pkg/model/project"
 	"test.com/project_api/pkg/model/tasks"
 	common "test.com/project_common"
 	"test.com/project_common/errs"
+	"test.com/project_common/fs"
 	"test.com/project_common/tms"
 	"test.com/project_grpc/task"
 	"time"
@@ -379,4 +382,127 @@ func (t *HandlerTask) saveTaskWorkTime(c *gin.Context) {
 		c.JSON(http.StatusOK, result.Fail(code, msg))
 	}
 	c.JSON(http.StatusOK, result.Success([]int{}))
+}
+
+func (t *HandlerTask) uploadFiles(c *gin.Context) {
+	result := &common.Result{}
+	req := project.UploadFileReq{}
+	err2 := c.ShouldBind(&req)
+	if err2 != nil {
+		c.JSON(http.StatusOK, result.Fail(http.StatusBadRequest, "参数格式有误"))
+		return
+	}
+	// 处理文件
+	multipartForm, err := c.MultipartForm()
+	if err != nil {
+		zap.L().Error("c.MultipartForm() err", zap.Error(err))
+		return
+	}
+	file := multipartForm.File
+	// 假设只上传一个文件
+	uploadFile := file["file"][0]
+	// 第一种 没有达成分片条件
+	key := ""
+	if req.TotalChunks == 1 {
+		// 不分片
+		path := "upload/" + req.ProjectCode + "/" + req.TaskCode + "/" + tms.FormatYMD(time.Now())
+		if !fs.IsExist(path) {
+			_ = os.MkdirAll(path, os.ModePerm)
+		}
+		dst := path + "/" + req.Filename
+		key = dst
+		err := c.SaveUploadedFile(uploadFile, dst)
+		if err != nil {
+			c.JSON(http.StatusOK, result.Fail(-999, err.Error()))
+			return
+		}
+	}
+	//TODO BUG 有问题 没有锁机制 导致出现多个数据流同时写入一个文件 在上传大文件(图片)时出现
+	if req.TotalChunks > 1 {
+		// 分片上传 无非就是先把每次的存储起来 追加就可以了
+		path := "upload/" + req.ProjectCode + "/" + req.TaskCode + "/" + tms.FormatYMD(time.Now())
+		if !fs.IsExist(path) {
+			_ = os.MkdirAll(path, os.ModePerm)
+		}
+		fileName := path + "/" + req.Identifier
+		openFile, err := os.OpenFile(fileName, os.O_CREATE|os.O_APPEND|os.O_RDWR, os.ModePerm)
+		if err != nil {
+			c.JSON(http.StatusOK, result.Fail(-999, err.Error()))
+			return
+		}
+		open, err2 := uploadFile.Open()
+		if err2 != nil {
+			c.JSON(http.StatusOK, result.Fail(-999, err2.Error()))
+			return
+		}
+		defer open.Close()
+		// 追加写入
+		buf := make([]byte, req.CurrentChunkSize)
+		open.Read(buf)
+		openFile.Write(buf)
+		openFile.Close()
+		// 改名
+		newpath := path + "/" + req.Filename
+		key = newpath
+		if req.TotalChunks == req.ChunkNumber {
+			//最后一块 重命名文件名
+			err3 := os.Rename(fileName, newpath)
+			if err3 != nil {
+				c.JSON(http.StatusOK, result.Fail(-999, err3.Error()))
+				return
+			}
+			//fmt.Println(err)
+		}
+	}
+	// 调用服务 存入
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	fileUrl := "http://localhost:3456/" + key
+	msg := &task.TaskFileReqMessage{
+		TaskCode:         req.TaskCode,
+		ProjectCode:      req.ProjectCode,
+		OrganizationCode: c.GetString("organizationCode"),
+		PathName:         key,
+		FileName:         req.Filename,
+		Size:             int64(req.TotalSize),
+		Extension:        path.Ext(key),
+		FileUrl:          fileUrl,
+		FileType:         file["file"][0].Header.Get("Content-Type"),
+		MemberId:         c.GetInt64("memberId"),
+	}
+	if req.TotalChunks == req.ChunkNumber {
+		_, err = rpc.TaskServiceClient.SaveTaskFile(ctx, msg)
+		if err != nil {
+			code, msg := errs.ParseGrpcError(err)
+			c.JSON(http.StatusOK, result.Fail(code, msg))
+		}
+	}
+
+	c.JSON(http.StatusOK, result.Success(gin.H{
+		"file":        key,
+		"hash":        "",
+		"key":         key,
+		"url":         "http://localhost:3456/" + key,
+		"projectName": req.ProjectName,
+	}))
+	return
+}
+
+func (t *HandlerTask) taskSources(c *gin.Context) {
+	result := &common.Result{}
+	taskCode := c.PostForm("taskCode")
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	sources, err := rpc.TaskServiceClient.TaskSources(ctx, &task.TaskReqMessage{TaskCode: taskCode})
+	if err != nil {
+		code, msg := errs.ParseGrpcError(err)
+		c.JSON(http.StatusOK, result.Fail(code, msg))
+	}
+	var slList []*tasks.SourceLink
+	_ = copier.Copy(&slList, sources.List)
+	if slList == nil {
+		slList = []*tasks.SourceLink{}
+	}
+	c.JSON(http.StatusOK, result.Success(slList))
 }
