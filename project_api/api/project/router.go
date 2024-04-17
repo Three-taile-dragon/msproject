@@ -47,4 +47,5 @@ func (*RouterProject) Router(r *gin.Engine) {
 	group.POST("/task/selfList", t.myTakeList)
 	group.POST("/task/read", t.readTask)
 	group.POST("/task_member", t.listTaskMember)
+	group.POST("/task/taskLog", t.taskLog)
 }
