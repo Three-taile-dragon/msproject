@@ -12,6 +12,7 @@ import (
 	"test.com/project_api/pkg/model/tasks"
 	common "test.com/project_common"
 	"test.com/project_common/errs"
+	"test.com/project_common/tms"
 	"test.com/project_grpc/task"
 	"time"
 )
@@ -346,10 +347,36 @@ func (t *HandlerTask) taskWorkTimeList(c *gin.Context) {
 		code, msg := errs.ParseGrpcError(err)
 		c.JSON(http.StatusOK, result.Fail(code, msg))
 	}
-	var tms []*tasks.TaskWorkTime
-	_ = copier.Copy(&tms, taskWorkTimeResponse.List)
-	if tms == nil {
-		tms = []*tasks.TaskWorkTime{}
+	var twt []*tasks.TaskWorkTime
+	_ = copier.Copy(&twt, taskWorkTimeResponse.List)
+	if twt == nil {
+		twt = []*tasks.TaskWorkTime{}
 	}
-	c.JSON(http.StatusOK, result.Success(tms))
+	c.JSON(http.StatusOK, result.Success(twt))
+}
+
+func (t *HandlerTask) saveTaskWorkTime(c *gin.Context) {
+	result := &common.Result{}
+	var req *tasks.SaveTaskWorkTimeReq
+	err2 := c.ShouldBind(&req)
+	if err2 != nil {
+		c.JSON(http.StatusOK, result.Fail(http.StatusBadRequest, "参数格式有误"))
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	msg := &task.TaskReqMessage{
+		TaskCode:  req.TaskCode,
+		MemberId:  c.GetInt64("memberId"),
+		Content:   req.Content,
+		Num:       int32(req.Num),
+		BeginTime: tms.ParseTime(req.BeginTime),
+	}
+	_, err := rpc.TaskServiceClient.SaveTaskWorkTime(ctx, msg)
+	if err != nil {
+		code, msg := errs.ParseGrpcError(err)
+		c.JSON(http.StatusOK, result.Fail(code, msg))
+	}
+	c.JSON(http.StatusOK, result.Success([]int{}))
 }
