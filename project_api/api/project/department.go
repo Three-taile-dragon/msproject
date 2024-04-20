@@ -57,3 +57,30 @@ func (d *HandlerDepartment) department(c *gin.Context) {
 	}))
 
 }
+
+func (d *HandlerDepartment) save(c *gin.Context) {
+	result := &common.Result{}
+	var req *department.DepartmentReq
+	err2 := c.ShouldBind(&req)
+	if err2 != nil {
+		c.JSON(http.StatusOK, result.Fail(http.StatusBadRequest, "参数格式有误"))
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	msg := &department2.DepartmentReqMessage{
+		Name:                 req.Name,
+		DepartmentCode:       req.DepartmentCode,
+		ParentDepartmentCode: req.ParentDepartmentCode,
+		OrganizationCode:     c.GetString("organizationCode"),
+	}
+	departmentMessage, err := rpc.DepartmentServiceClient.Save(ctx, msg)
+	if err != nil {
+		code, msg := errs.ParseGrpcError(err)
+		c.JSON(http.StatusOK, result.Fail(code, msg))
+	}
+	var res = &department.Department{}
+	_ = copier.Copy(res, departmentMessage)
+	c.JSON(http.StatusOK, result.Success(res))
+}
