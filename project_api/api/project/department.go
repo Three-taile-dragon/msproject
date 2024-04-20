@@ -84,3 +84,22 @@ func (d *HandlerDepartment) save(c *gin.Context) {
 	_ = copier.Copy(res, departmentMessage)
 	c.JSON(http.StatusOK, result.Success(res))
 }
+
+func (d *HandlerDepartment) read(c *gin.Context) {
+	result := &common.Result{}
+	departmentCode := c.PostForm("departmentCode")
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	msg := &department2.DepartmentReqMessage{
+		DepartmentCode:   departmentCode,
+		OrganizationCode: c.GetString("organizationCode"),
+	}
+	departmentMessage, err := rpc.DepartmentServiceClient.Read(ctx, msg)
+	if err != nil {
+		code, msg := errs.ParseGrpcError(err)
+		c.JSON(http.StatusOK, result.Fail(code, msg))
+	}
+	var res = &department.Department{}
+	_ = copier.Copy(res, departmentMessage)
+	c.JSON(http.StatusOK, result.Success(res))
+}

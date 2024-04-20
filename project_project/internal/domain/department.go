@@ -20,10 +20,14 @@ func NewDepartmentDomain() *DepartmentDomain {
 	}
 }
 
-func (d *DepartmentDomain) FindDepartmentById(id int64) (*department.Department, error) {
+func (d *DepartmentDomain) FindDepartmentById(id int64) (*department.Department, *errs.BError) {
 	c, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	return d.departmentRepo.FindDepartmentById(c, id)
+	dp, err := d.departmentRepo.FindDepartmentById(c, id)
+	if err != nil {
+		return nil, model.DBError
+	}
+	return dp, nil
 }
 
 func (d *DepartmentDomain) List(organizationCode int64, departmentCode int64, page int64, pageSize int64) ([]*department.DepartmentDisplay, int64, *errs.BError) {

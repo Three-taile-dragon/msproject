@@ -62,7 +62,7 @@ func (d *AccountDomain) AccountList(organizationCode string, memberId int64, pag
 		if v.DepartmentCode > 0 {
 			department, err := d.departmentDomain.FindDepartmentById(v.DepartmentCode)
 			if err != nil {
-				return nil, 0, model.DBError
+				return nil, 0, err
 			}
 			display.Departments = department.Name
 		}
