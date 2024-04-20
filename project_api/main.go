@@ -19,5 +19,9 @@ func main() {
 	r.StaticFS("/upload", http.Dir("upload"))
 
 	router.InitRouter(r)
+
+	// 开启 pprof 默认访问路径 /debug/pprof
+	//pprof.Register(r, "/dev/pprof")
+
 	srv.Run(r, config.C.SC.Name, config.C.SC.Addr, nil) //使用viper读取yaml配置文件
 }
