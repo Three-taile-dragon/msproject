@@ -58,4 +58,7 @@ func (*RouterProject) Router(r *gin.Engine) {
 	a := NewAccount()
 	group.POST("/account", a.account)
 
+	d := NewDepartment()
+	group.POST("/department", d.department)
+
 }
