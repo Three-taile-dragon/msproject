@@ -8,11 +8,13 @@ import (
 	"net"
 	"test.com/project_common/discovery"
 	"test.com/project_common/logs"
+	"test.com/project_grpc/account"
 	project_service "test.com/project_grpc/project"
 	"test.com/project_grpc/task"
 	"test.com/project_project/config"
 	"test.com/project_project/internal/interceptor"
 	"test.com/project_project/internal/rpc"
+	account_service_v1 "test.com/project_project/pkg/service/account.service.v1"
 	project_service_v1 "test.com/project_project/pkg/service/project.service.v1"
 	task_service_v1 "test.com/project_project/pkg/service/task.service.v1"
 )
@@ -65,6 +67,7 @@ func RegisterGrpc() *grpc.Server {
 		RegisterFunc: func(g *grpc.Server) {
 			project_service.RegisterProjectServiceServer(g, project_service_v1.New())
 			task.RegisterTaskServiceServer(g, task_service_v1.New())
+			account.RegisterAccountServiceServer(g, account_service_v1.New())
 		}}
 	// grpc 拦截器	自定义统一缓存
 	cacheInterceptor := interceptor.New()

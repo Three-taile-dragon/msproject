@@ -28,3 +28,8 @@ func (d *UserRpcDomain) MemberList(mIdList []int64) ([]*login.MemberMessage, map
 	}
 	return messageList.List, mMap, err
 }
+
+func (d *UserRpcDomain) MemberInfo(ctx context.Context, memberCode int64) (*login.MemberMessage, error) {
+	memberMessage, err := d.lc.FindMemInfoById(ctx, &login.UserMessage{MemId: memberCode})
+	return memberMessage, err
+}

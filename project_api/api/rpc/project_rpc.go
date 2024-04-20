@@ -8,14 +8,16 @@ import (
 	"test.com/project_api/config"
 	"test.com/project_common/discovery"
 	"test.com/project_common/logs"
+	"test.com/project_grpc/account"
 	"test.com/project_grpc/project"
 	"test.com/project_grpc/task"
 )
 
 var ProjectServiceClient project.ProjectServiceClient
 var TaskServiceClient task.TaskServiceClient
+var AccountServiceClient account.AccountServiceClient
 
-// InitRpcUserClient 初始化grpc客户段连接
+// InitRpcProjectClient 初始化grpc客户段连接
 func InitRpcProjectClient() {
 	//grpc 连接 etcd
 	etcdRegister := discovery.NewResolver(config.C.EC.Addrs, logs.LG)
@@ -27,4 +29,5 @@ func InitRpcProjectClient() {
 	}
 	ProjectServiceClient = project.NewProjectServiceClient(conn)
 	TaskServiceClient = task.NewTaskServiceClient(conn)
+	AccountServiceClient = account.NewAccountServiceClient(conn)
 }
