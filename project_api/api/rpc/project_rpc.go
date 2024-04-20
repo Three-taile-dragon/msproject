@@ -9,6 +9,7 @@ import (
 	"test.com/project_common/discovery"
 	"test.com/project_common/logs"
 	"test.com/project_grpc/account"
+	"test.com/project_grpc/auth"
 	"test.com/project_grpc/department"
 	"test.com/project_grpc/project"
 	"test.com/project_grpc/task"
@@ -18,6 +19,7 @@ var ProjectServiceClient project.ProjectServiceClient
 var TaskServiceClient task.TaskServiceClient
 var AccountServiceClient account.AccountServiceClient
 var DepartmentServiceClient department.DepartmentServiceClient
+var AuthServiceClient auth.AuthServiceClient
 
 // InitRpcProjectClient 初始化grpc客户段连接
 func InitRpcProjectClient() {
@@ -33,4 +35,5 @@ func InitRpcProjectClient() {
 	TaskServiceClient = task.NewTaskServiceClient(conn)
 	AccountServiceClient = account.NewAccountServiceClient(conn)
 	DepartmentServiceClient = department.NewDepartmentServiceClient(conn)
+	AuthServiceClient = auth.NewAuthServiceClient(conn)
 }

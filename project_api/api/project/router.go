@@ -63,4 +63,7 @@ func (*RouterProject) Router(r *gin.Engine) {
 	group.POST("/department/save", d.save)
 	group.POST("/department/read", d.read)
 
+	u := NewAuth()
+	group.POST("/auth", u.auth)
+
 }
