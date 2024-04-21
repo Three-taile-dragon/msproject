@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"go.uber.org/zap"
 	"test.com/project_common/errs"
 	"test.com/project_project/internal/dao/mysql"
 	"test.com/project_project/internal/data/menu"
@@ -22,6 +23,7 @@ func NewMenuDomain() *MenuDomain {
 func (d *MenuDomain) MenuTreeList() ([]*menu.ProjectMenuChild, *errs.BError) {
 	menus, err := d.menuRepo.FindMenus(context.Background())
 	if err != nil {
+		zap.L().Error("project Menu MenuTreeList menuRepo.FindMenus error", zap.Error(err))
 		return nil, model.DBError
 	}
 	menuChildren := menu.CovertChild(menus)

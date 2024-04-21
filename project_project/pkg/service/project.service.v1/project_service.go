@@ -16,6 +16,7 @@ import (
 	"test.com/project_project/internal/data/menu"
 	"test.com/project_project/internal/database"
 	"test.com/project_project/internal/database/tran"
+	"test.com/project_project/internal/domain"
 	"test.com/project_project/internal/repo"
 	"test.com/project_project/internal/rpc"
 	"test.com/project_project/pkg/model"
@@ -34,6 +35,7 @@ type ProjectService struct {
 	taskStagesRepo         repo.TaskStagesRepo
 	projectLogRepo         repo.ProjectLogRepo
 	taskRepo               repo.TaskRepo
+	nodeDomain             *domain.ProjectNodeDomain
 }
 
 func New() *ProjectService {
@@ -47,6 +49,7 @@ func New() *ProjectService {
 		taskStagesRepo:         mysql.NewTaskStagesDao(),
 		projectLogRepo:         mysql.NewProjectLogDao(),
 		taskRepo:               mysql.NewTaskDao(),
+		nodeDomain:             domain.NewProjectNodeDomain(),
 	}
 }
 func (ps *ProjectService) Index(ctx context.Context, req *project.IndexRequest) (*project.IndexResponse, error) {
