@@ -11,6 +11,7 @@ import (
 	"test.com/project_grpc/account"
 	"test.com/project_grpc/auth"
 	"test.com/project_grpc/department"
+	"test.com/project_grpc/menu"
 	project_service "test.com/project_grpc/project"
 	"test.com/project_grpc/task"
 	"test.com/project_project/config"
@@ -19,6 +20,7 @@ import (
 	account_service_v1 "test.com/project_project/pkg/service/account.service.v1"
 	auth_service_v1 "test.com/project_project/pkg/service/auth.service.v1"
 	department_service_v1 "test.com/project_project/pkg/service/department.service.v1"
+	menu_service_v1 "test.com/project_project/pkg/service/menu.service.v1"
 	project_service_v1 "test.com/project_project/pkg/service/project.service.v1"
 	task_service_v1 "test.com/project_project/pkg/service/task.service.v1"
 )
@@ -74,6 +76,7 @@ func RegisterGrpc() *grpc.Server {
 			account.RegisterAccountServiceServer(g, account_service_v1.New())
 			department.RegisterDepartmentServiceServer(g, department_service_v1.New())
 			auth.RegisterAuthServiceServer(g, auth_service_v1.New())
+			menu.RegisterMenuServiceServer(g, menu_service_v1.New())
 		}}
 	// grpc 拦截器	自定义统一缓存
 	cacheInterceptor := interceptor.New()

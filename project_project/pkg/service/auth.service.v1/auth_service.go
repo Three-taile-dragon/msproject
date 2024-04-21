@@ -1,4 +1,4 @@
-package account_service_v1
+package auth_service_v1
 
 import (
 	"context"
