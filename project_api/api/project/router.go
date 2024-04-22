@@ -29,6 +29,7 @@ func (*RouterProject) Router(r *gin.Engine) {
 	group.Use(midd.TokenVerify())
 	// 权限控制
 	group.Use(Auth())
+	group.Use(projectAuth())
 
 	group.POST("/index", h.index)
 	group.POST("/project/selfList", h.myProjectList)

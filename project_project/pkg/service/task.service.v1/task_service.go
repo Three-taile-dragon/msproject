@@ -63,12 +63,12 @@ func (t *TaskService) TaskStages(ctx context.Context, msg *task.TaskReqMessage) 
 	c, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	pmID := encrypts.DecryptNoErr(msg.ProjectCode)
-	projectCode, err1 := t.projectRepo.FindProjectByCipId(c, pmID)
-	if err1 != nil {
-		zap.L().Error("task TaskStages projectRepo.FindProjectByCipId error", zap.Error(err1))
-		return nil, errs.GrpcError(model.DBError)
-	}
+	projectCode := encrypts.DecryptNoErr(msg.ProjectCode)
+	//projectCode, err1 := t.projectRepo.FindProjectByCipId(c, pmID)
+	//if err1 != nil {
+	//	zap.L().Error("task TaskStages projectRepo.FindProjectByCipId error", zap.Error(err1))
+	//	return nil, errs.GrpcError(model.DBError)
+	//}
 
 	page := msg.Page
 	pageSIze := msg.PageSize
@@ -98,12 +98,13 @@ func (t *TaskService) MemberProjectList(ctx context.Context, msg *task.TaskReqMe
 	c, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	// 查询 用户id 列表
-	pmID := encrypts.DecryptNoErr(msg.ProjectCode)
-	projectCode, err1 := t.projectRepo.FindProjectByCipId(c, pmID)
-	if err1 != nil {
-		zap.L().Error("task TaskStages projectRepo.FindProjectByCipId error", zap.Error(err1))
-		return nil, errs.GrpcError(model.DBError)
-	}
+	projectCode := encrypts.DecryptNoErr(msg.ProjectCode)
+	//projectCode, err1 := t.projectRepo.FindProjectByCipId(c, pmID)
+	//if err1 != nil {
+	//	zap.L().Error("task TaskStages projectRepo.FindProjectByCipId error", zap.Error(err1))
+	//	return nil, errs.GrpcError(model.DBError)
+	//}
+
 	projectMembers, total, err := t.projectRepo.FindProjectByPid(c, projectCode)
 	if err != nil {
 		zap.L().Error("task MemberProjectList projectRepo.FindProjectByPid error", zap.Error(err))

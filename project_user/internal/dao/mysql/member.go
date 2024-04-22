@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"context"
+	"errors"
 	"gorm.io/gorm"
 	"test.com/project_user/internal/data/member"
 	"test.com/project_user/internal/database"
@@ -65,7 +66,7 @@ func (m MemberDao) FindMember(ctx context.Context, account string, pwd string) (
 func (m *MemberDao) FindMemberById(ctx context.Context, id int64) (*member.Member, error) {
 	var mem *member.Member
 	err := m.conn.Session(ctx).Where("id=?", id).First(&mem).Error
-	if err == gorm.ErrRecordNotFound {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		//未查询到对应的信息
 		return nil, nil
 	}
