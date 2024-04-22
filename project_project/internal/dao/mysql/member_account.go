@@ -2,6 +2,8 @@ package mysql
 
 import (
 	"context"
+	"errors"
+	"gorm.io/gorm"
 	"test.com/project_project/internal/data/account"
 	"test.com/project_project/internal/database/gorms"
 )
@@ -25,5 +27,14 @@ func (m *MemberAccountDao) FindList(ctx context.Context, condition string, organ
 	err = session.Model(&account.MemberAccount{}).
 		Where("organization_code=?", organizationCode).
 		Where(condition).Count(&total).Error
+	return
+}
+
+func (m *MemberAccountDao) FindByMemberId(ctx context.Context, memberId int64) (ma *account.MemberAccount, err error) {
+	session := m.conn.Session(ctx)
+	err = session.Where("member_code = ?", memberId).Take(&ma).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
 	return
 }

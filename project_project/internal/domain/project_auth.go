@@ -3,6 +3,7 @@ package domain
 import (
 	"context"
 	"go.uber.org/zap"
+	"strconv"
 	"test.com/project_common/errs"
 	"test.com/project_project/internal/dao/mysql"
 	"test.com/project_project/internal/data"
@@ -17,6 +18,7 @@ type ProjectAuthDomain struct {
 	projectAuthRepo       repo.ProjectAuthRepo
 	projectNodeDomain     *ProjectNodeDomain
 	projectAuthNodeDomain *ProjectAuthNodeDomain
+	accountDomain         *AccountDomain
 }
 
 func NewProjectAuthDomain() *ProjectAuthDomain {
@@ -24,6 +26,7 @@ func NewProjectAuthDomain() *ProjectAuthDomain {
 		projectAuthRepo:       mysql.NewProjectAuthDao(),
 		projectNodeDomain:     NewProjectNodeDomain(),
 		projectAuthNodeDomain: NewProjectAuthNodeDomain(),
+		accountDomain:         NewAccountDomain(),
 	}
 }
 
@@ -78,4 +81,23 @@ func (d *ProjectAuthDomain) Save(conn database.DbConn, authId int64, nodes []str
 		return err
 	}
 	return nil
+}
+
+func (d *ProjectAuthDomain) AuthNodes(memberId int64) ([]string, *errs.BError) {
+	mAccount, err := d.accountDomain.FindAccount(memberId)
+	if err != nil {
+		return nil, err
+	}
+
+	if mAccount == nil {
+		return nil, model.ParamsError
+	}
+
+	authorize := mAccount.Authorize
+	authId, _ := strconv.ParseInt(authorize, 10, 64)
+	authNodeList, dbErr := d.projectAuthNodeDomain.AuthNodeList(authId)
+	if dbErr != nil {
+		return nil, model.DBError
+	}
+	return authNodeList, nil
 }

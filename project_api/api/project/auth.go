@@ -95,3 +95,18 @@ func (a *HandlerAuth) apply(c *gin.Context) {
 		"checkedList": checkedList,
 	}))
 }
+
+func (a *HandlerAuth) GetAuthNodes(c *gin.Context) ([]string, error) {
+	memberId := c.GetInt64("memberId")
+	msg := &auth.AuthReqMessage{
+		MemberId: memberId,
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	response, err := rpc.AuthServiceClient.AuthNodesByMemberId(ctx, msg)
+	if err != nil {
+		code, msg := errs.ParseGrpcError(err)
+		return nil, errs.NewError(errs.ErrorCode(code), msg)
+	}
+	return response.List, err
+}
