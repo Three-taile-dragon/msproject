@@ -5,6 +5,7 @@ import (
 	"go.uber.org/zap"
 	"test.com/project_common/errs"
 	"test.com/project_project/internal/dao/mysql"
+	"test.com/project_project/internal/data"
 	"test.com/project_project/internal/data/account"
 	"test.com/project_project/internal/repo"
 	"test.com/project_project/pkg/model"
@@ -12,12 +13,16 @@ import (
 )
 
 type ProjectAuthDomain struct {
-	projectAuthRepo repo.ProjectAuthRepo
+	projectAuthRepo       repo.ProjectAuthRepo
+	projectNodeDomain     *ProjectNodeDomain
+	projectAuthNodeDomain *ProjectAuthNodeDomain
 }
 
 func NewProjectAuthDomain() *ProjectAuthDomain {
 	return &ProjectAuthDomain{
-		projectAuthRepo: mysql.NewProjectAuthDao(),
+		projectAuthRepo:       mysql.NewProjectAuthDao(),
+		projectNodeDomain:     NewProjectNodeDomain(),
+		projectAuthNodeDomain: NewProjectAuthNodeDomain(),
 	}
 }
 
@@ -51,4 +56,17 @@ func (d *ProjectAuthDomain) AuthListPage(organizationCode int64, page int64, pag
 		pdList = append(pdList, display)
 	}
 	return pdList, total, nil
+}
+
+func (d *ProjectAuthDomain) AllNodeAndAuth(authId int64) ([]*data.ProjectNodeAuthTree, []string, *errs.BError) {
+	treeList, err := d.projectNodeDomain.AllNodeList()
+	if err != nil {
+		return nil, nil, err
+	}
+	authNodeList, dbErr := d.projectAuthNodeDomain.AuthNodeList(authId)
+	if dbErr != nil {
+		return nil, nil, dbErr
+	}
+	list := data.ToAuthNodeTreeList(treeList, authNodeList)
+	return list, authNodeList, nil
 }

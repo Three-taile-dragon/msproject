@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"test.com/project_api/api/rpc"
 	"test.com/project_api/pkg/model"
+	pro "test.com/project_api/pkg/model/project"
 	common "test.com/project_common"
 	"test.com/project_common/errs"
 	account2 "test.com/project_grpc/account"
@@ -50,5 +51,35 @@ func (a HandlerAuth) auth(c *gin.Context) {
 		"total": response.Total,
 		"list":  authList,
 		"page":  page.Page,
+	}))
+}
+
+func (a *HandlerAuth) apply(c *gin.Context) {
+	result := &common.Result{}
+	var req *pro.ProjectAuthReq
+	err2 := c.ShouldBind(&req)
+	if err2 != nil {
+		c.JSON(http.StatusOK, result.Fail(http.StatusBadRequest, "参数格式有误"))
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	msg := &auth.AuthReqMessage{
+		Action: req.Action,
+		AuthId: req.Id,
+	}
+	applyResponse, err := rpc.AuthServiceClient.Apply(ctx, msg)
+	if err != nil {
+		code, msg := errs.ParseGrpcError(err)
+		c.JSON(http.StatusOK, result.Fail(code, msg))
+	}
+	var list []*pro.ProjectNodeAuthTree
+	_ = copier.Copy(&list, applyResponse.List)
+	var checkedList []string
+	_ = copier.Copy(&checkedList, applyResponse.CheckedList)
+	c.JSON(http.StatusOK, result.Success(gin.H{
+		"list":        list,
+		"checkedList": checkedList,
 	}))
 }

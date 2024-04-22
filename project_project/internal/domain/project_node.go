@@ -30,3 +30,11 @@ func (d *ProjectNodeDomain) TreeList() ([]*data.ProjectNodeTree, *errs.BError) {
 	treeList := data.ToNodeTreeList(nodes)
 	return treeList, nil
 }
+
+func (d *ProjectNodeDomain) AllNodeList() ([]*data.ProjectNode, *errs.BError) {
+	list, err := d.projectNodeRepo.FindAll(context.Background())
+	if err != nil {
+		return nil, model.DBError
+	}
+	return list, nil
+}
