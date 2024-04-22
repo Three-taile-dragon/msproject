@@ -7,6 +7,7 @@ import (
 	"test.com/project_project/internal/dao/mysql"
 	"test.com/project_project/internal/data"
 	"test.com/project_project/internal/data/account"
+	"test.com/project_project/internal/database"
 	"test.com/project_project/internal/repo"
 	"test.com/project_project/pkg/model"
 	"time"
@@ -69,4 +70,12 @@ func (d *ProjectAuthDomain) AllNodeAndAuth(authId int64) ([]*data.ProjectNodeAut
 	}
 	list := data.ToAuthNodeTreeList(treeList, authNodeList)
 	return list, authNodeList, nil
+}
+
+func (d *ProjectAuthDomain) Save(conn database.DbConn, authId int64, nodes []string) *errs.BError {
+	err := d.projectNodeDomain.Save(conn, authId, nodes)
+	if err != nil {
+		return err
+	}
+	return nil
 }

@@ -2,6 +2,7 @@ package project
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
 	"net/http"
@@ -63,11 +64,22 @@ func (a *HandlerAuth) apply(c *gin.Context) {
 		return
 	}
 
+	// 解析 nodes string 转 数组
+	var nodes []string
+	if req.Nodes != "" {
+		err3 := json.Unmarshal([]byte(req.Nodes), &nodes)
+		if err3 != nil {
+			c.JSON(http.StatusOK, result.Fail(http.StatusBadRequest, "参数格式有误"))
+			return
+		}
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	msg := &auth.AuthReqMessage{
 		Action: req.Action,
 		AuthId: req.Id,
+		Nodes:  nodes,
 	}
 	applyResponse, err := rpc.AuthServiceClient.Apply(ctx, msg)
 	if err != nil {

@@ -6,6 +6,7 @@ import (
 	"test.com/project_common/errs"
 	"test.com/project_project/internal/dao/mysql"
 	"test.com/project_project/internal/data"
+	"test.com/project_project/internal/database"
 	"test.com/project_project/internal/repo"
 	"test.com/project_project/pkg/model"
 )
@@ -37,4 +38,16 @@ func (d *ProjectNodeDomain) AllNodeList() ([]*data.ProjectNode, *errs.BError) {
 		return nil, model.DBError
 	}
 	return list, nil
+}
+
+func (d *ProjectNodeDomain) Save(conn database.DbConn, authId int64, nodes []string) *errs.BError {
+	err := d.projectNodeRepo.DeleteByAuthId(context.Background(), conn, authId)
+	if err != nil {
+		return model.DBError
+	}
+	err2 := d.projectNodeRepo.Save(context.Background(), conn, authId, nodes)
+	if err2 != nil {
+		return model.DBError
+	}
+	return nil
 }
