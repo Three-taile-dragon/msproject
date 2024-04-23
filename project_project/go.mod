@@ -10,7 +10,7 @@ require (
 	go.uber.org/zap v1.24.0
 	google.golang.org/grpc v1.53.0
 	gorm.io/driver/mysql v1.4.5
-	gorm.io/gorm v1.24.4
+	gorm.io/gorm v1.25.2
 )
 
 require (
@@ -56,4 +56,5 @@ require (
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+	gorm.io/plugin/dbresolver v1.5.1 // indirect
 )

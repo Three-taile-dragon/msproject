@@ -20,6 +20,7 @@ type Config struct {
 	MC    *MysqlConfig
 	JC    *JwtConfig
 	AC    *AesConfig
+	DC    *DbConfig
 }
 
 type ServerConfig struct {
@@ -44,6 +45,13 @@ type MysqlConfig struct {
 	Host     string
 	Port     int
 	Db       string
+	Name     string
+}
+
+type DbConfig struct {
+	Master     MysqlConfig
+	Slave      []MysqlConfig
+	Separation bool
 }
 
 type JwtConfig struct {
@@ -77,6 +85,7 @@ func InitConfig() *Config {
 	conf.ReadEtcdConfig()
 	conf.ReadMysqlConfig()
 	conf.ReadJwtConfig()
+	conf.InitDbConfig()
 	return conf
 }
 
@@ -163,4 +172,25 @@ func (c *Config) ReadAesConfig() {
 		AesKey: c.viper.GetString("aes.key"),
 	}
 	c.AC = ac
+}
+
+// InitDbConfig Mysql主从配置读取
+func (c *Config) InitDbConfig() {
+	mc := DbConfig{}
+	mc.Separation = c.viper.GetBool("db.separation")
+	var slaves []MysqlConfig
+	err := c.viper.UnmarshalKey("db.slave", &slaves)
+	if err != nil {
+		panic(err)
+	}
+	master := MysqlConfig{
+		Username: c.viper.GetString("db.master.username"),
+		Password: c.viper.GetString("db.master.password"),
+		Host:     c.viper.GetString("db.master.host"),
+		Port:     c.viper.GetInt("db.master.port"),
+		Db:       c.viper.GetString("db.master.db"),
+	}
+	mc.Master = master
+	mc.Slave = slaves
+	c.DC = &mc
 }
