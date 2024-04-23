@@ -15,3 +15,8 @@ type TaskStagesResp struct {
 	DoneTasks    []int  `json:"doneTasks"`
 	UnDoneTasks  []int  `json:"unDoneTasks"`
 }
+
+type TaskStagesSaveReq struct {
+	Name        string `form:"name"`
+	ProjectCode string `form:"projectCode"`
+}

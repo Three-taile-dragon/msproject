@@ -228,12 +228,7 @@ func (t *TaskService) SaveTask(ctx context.Context, msg *task.TaskReqMessage) (*
 	if taskStages == nil {
 		return nil, errs.GrpcError(model.TaskStagesNotNull)
 	}
-	pmID := encrypts.DecryptNoErr(msg.ProjectCode)
-	projectCode, err1 := t.projectRepo.FindProjectByCipId(ctx, pmID)
-	if err1 != nil {
-		zap.L().Error("task TaskStages projectRepo.FindProjectByCipId error", zap.Error(err1))
-		return nil, errs.GrpcError(model.DBError)
-	}
+	projectCode := encrypts.DecryptNoErr(msg.ProjectCode)
 	project, err := t.projectRepo.FindProjectById(ctx, projectCode)
 	if err != nil {
 		zap.L().Error("task SaveTask projectRepo.FindProjectById error", zap.Error(err))
@@ -820,4 +815,43 @@ func (t *TaskService) CreateComment(ctx context.Context, msg *task.TaskReqMessag
 	}
 	t.projectLogRepo.SaveProjectLog(pl)
 	return &task.CreateCommentResponse{}, nil
+}
+
+func (t *TaskService) TaskStagesSave(ctx context.Context, msg *task.TaskReqMessage) (*task.TaskStagesSaveResponse, error) {
+	projectCode := encrypts.DecryptNoErr(msg.ProjectCode)
+	c, cancel := context.WithTimeout(context.Background(), 2*time.Second) //编写上下文 最多允许两秒超时
+	defer cancel()
+	// 查询 该 Project 中现有多少项目
+	_, total, err2 := t.taskStagesRepo.FindStagesByProject(c, projectCode, 0, 100)
+	if err2 != nil {
+		zap.L().Error("task TaskStagesSave taskStagesRepo.FindStagesByProject error", zap.Error(err2))
+		return nil, errs.GrpcError(model.DBError)
+	}
+	var index int
+	if total == 0 {
+		index = 0
+	} else {
+		index = int(total - 1)
+	}
+	//添加事务
+	err := t.transaction.Action(func(conn database.DbConn) error {
+		taskStage := &data.TaskStages{
+			ProjectCode: projectCode,
+			Name:        msg.Name,
+			Sort:        index,
+			Description: "",
+			CreateTime:  time.Now().UnixMilli(),
+			Deleted:     model.NoDeleted,
+		}
+		err := t.taskStagesRepo.SaveTaskStages(ctx, conn, taskStage)
+		if err != nil {
+			zap.L().Error("project task TaskStagesSave taskStagesRepo.SaveTaskStages error", zap.Error(err))
+			return errs.GrpcError(model.DBError)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &task.TaskStagesSaveResponse{}, nil
 }

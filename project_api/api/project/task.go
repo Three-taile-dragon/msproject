@@ -530,3 +530,25 @@ func (t *HandlerTask) createComment(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, result.Success(true))
 }
+
+func (t *HandlerTask) taskStagesSave(c *gin.Context) {
+	result := &common.Result{}
+	req := tasks.TaskStagesSaveReq{}
+	err2 := c.ShouldBind(&req)
+	if err2 != nil {
+		c.JSON(http.StatusOK, result.Fail(http.StatusBadRequest, "参数格式有误"))
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	msg := &task.TaskReqMessage{
+		Name:        req.Name,
+		ProjectCode: req.ProjectCode,
+	}
+	_, err := rpc.TaskServiceClient.TaskStagesSave(ctx, msg)
+	if err != nil {
+		code, msg := errs.ParseGrpcError(err)
+		c.JSON(http.StatusOK, result.Fail(code, msg))
+	}
+	c.JSON(http.StatusOK, result.Success(true))
+}

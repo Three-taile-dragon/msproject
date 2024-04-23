@@ -2,7 +2,7 @@
 
 syntax = "proto3";
 package task.service.v1;
-option go_package = "project_project/pkg/service/task.service.v1";
+option go_package = "project_project/pkg/service/task.service.v1;task_service_v1";
 
 message TaskReqMessage {
   int64 memberId = 1;
@@ -286,6 +286,10 @@ message CreateCommentResponse{
 
 }
 
+message TaskStagesSaveResponse{
+
+}
+
 service TaskService {
   rpc TaskStages(TaskReqMessage) returns (TaskStagesResponse) {}
   rpc MemberProjectList(TaskReqMessage) returns (MemberProjectResponse){}
@@ -301,4 +305,5 @@ service TaskService {
   rpc SaveTaskFile(TaskFileReqMessage) returns(TaskFileResponse){}
   rpc TaskSources(TaskReqMessage) returns(TaskSourceResponse){}
   rpc CreateComment(TaskReqMessage) returns(CreateCommentResponse){}
+  rpc TaskStagesSave(TaskReqMessage) returns (TaskStagesSaveResponse) {}
 }
