@@ -80,3 +80,8 @@ func (m *MemberDao) FindMemberByIds(ctx context.Context, mIds []int64) (list []*
 	err = m.conn.Session(ctx).Model(&member.Member{}).Where("id in (?)", mIds).Find(&list).Error
 	return
 }
+
+func (m *MemberDao) SaveMemberAccount(conn database.DbConn, ctx context.Context, mAccount *member.MemberAccount) error {
+	m.conn = conn.(*gorms.GormConn) //使用事务操作
+	return m.conn.Tx(ctx).Create(mAccount).Error
+}

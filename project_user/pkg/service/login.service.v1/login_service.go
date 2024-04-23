@@ -3,6 +3,7 @@ package login_service_v1
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/go-redis/redis/v8"
 	"github.com/jinzhu/copier"
 	"go.uber.org/zap"
@@ -84,7 +85,7 @@ func (ls *LoginService) Register(ctx context.Context, req *login.RegisterRequest
 	//1.可以校验参数 这里 api服务中已经校验过 这里就不再校验
 	//2.校验验证码
 	redisCode, err := ls.cache.Get(c, model.RegisterRedisKey+req.Mobile)
-	if err == redis.Nil {
+	if errors.Is(err, redis.Nil) {
 		return nil, errs.GrpcError(model.CaptchaNoExist)
 	}
 	if err != nil {
@@ -152,6 +153,40 @@ func (ls *LoginService) Register(ctx context.Context, req *login.RegisterRequest
 		err = ls.organizationRepo.SaveOrganization(conn, c, org)
 		if err != nil {
 			zap.L().Error("注册模块organization数据库存入失败", zap.Error(err))
+			return errs.GrpcError(model.DBError)
+		}
+
+		return nil
+	})
+	//将存入部分使用事务包裹 使得可以回滚数据库操作
+
+	// 查询出新用户的 OrganizationId
+
+	memOrg, err3 := ls.organizationRepo.FindOrganizationByMemId(c, mem.Id)
+	if err3 != nil {
+		zap.L().Error("user Register memberRepo.SaveMemberAccount DB Error", zap.Error(err3))
+		return nil, errs.GrpcError(model.DBError)
+	}
+	err = ls.transaction.Action(func(conn database.DbConn) error {
+		//生成 成员账户
+		mAccount := &member.MemberAccount{
+			OrganizationCode: memOrg[0].Id,
+			MemberCode:       mem.Id,
+			Authorize:        "3", // 默认权限为 管理员
+			IsOwner:          1,
+			Name:             mem.Name,
+			Mobile:           mem.Mobile,
+			Email:            mem.Email,
+			CreateTime:       mem.CreateTime,
+			LastLoginTime:    mem.LastLoginTime,
+			Status:           1,
+			Description:      mem.Description,
+			Avatar:           mem.Avatar,
+		}
+
+		err = ls.memberRepo.SaveMemberAccount(conn, c, mAccount)
+		if err != nil {
+			zap.L().Error("user Register memberRepo.SaveMemberAccount DB Error", zap.Error(err))
 			return errs.GrpcError(model.DBError)
 		}
 		return nil
