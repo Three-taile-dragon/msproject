@@ -22,6 +22,7 @@ type Config struct {
 	MC    *MysqlConfig
 	JC    *JwtConfig
 	AC    *AesConfig
+	DC    *DbConfig
 }
 
 type ServerConfig struct {
@@ -38,6 +39,12 @@ type GrpcConfig struct {
 
 type EtcdConfig struct {
 	Addrs []string
+}
+
+type DbConfig struct {
+	Master     MysqlConfig
+	Slave      []MysqlConfig
+	Separation bool
 }
 
 type MysqlConfig struct {
@@ -71,6 +78,26 @@ func InitConfig() *Config {
 	if err2 != nil {
 		log.Fatalln(err2)
 	}
+
+	// 监听配置文件变化
+	err3 := nacosClient.configClient.ListenConfig(vo.ConfigParam{
+		DataId: "config.yaml",
+		Group:  nacosClient.group,
+		OnChange: func(namespace, group, dataId, data string) {
+			// 变化
+			log.Printf("load nacos config changed %s \n", data)
+			err := conf.viper.ReadConfig(bytes.NewBuffer([]byte(data)))
+			if err != nil {
+				log.Printf("load nacos config changed err : %s \n", err.Error())
+			}
+			// 所有的配置应该重新读取
+			conf.ReLoadAllConfig()
+		},
+	})
+	if err3 != nil {
+		log.Fatalln(err3)
+	}
+
 	conf.viper.SetConfigType("yaml") //viper配置文件后缀
 	if configYaml != "" {
 		err := conf.viper.ReadConfig(bytes.NewBuffer([]byte(configYaml)))
@@ -92,14 +119,21 @@ func InitConfig() *Config {
 		}
 	}
 
-	conf.ReadServerConfig()
-	conf.InitZapLog()
-	conf.ReadGrpcConfig()
-	conf.ReadEtcdConfig()
-	conf.ReadMysqlConfig()
-	conf.ReadJwtConfig()
-	conf.ReadAesConfig()
+	conf.ReLoadAllConfig()
 	return conf
+}
+
+func (c *Config) ReLoadAllConfig() {
+	c.ReadServerConfig()
+	c.InitZapLog()
+	c.ReadGrpcConfig()
+	c.ReadEtcdConfig()
+	c.ReadMysqlConfig()
+	c.ReadJwtConfig()
+	c.InitDbConfig()
+	//重新创建相关的客户端
+	c.ReConnRedis()
+	c.ReConnMysql()
 }
 
 // ReadServerConfig 读取服务器地址配置
@@ -110,7 +144,7 @@ func (c *Config) ReadServerConfig() {
 	c.SC = sc
 }
 
-// ReadServerConfig 读取grpc配置
+// ReadGrpcConfig 读取grpc配置
 func (c *Config) ReadGrpcConfig() {
 	gc := &GrpcConfig{}
 	gc.Name = c.viper.GetString("grpc.name") //读取配置
@@ -132,7 +166,7 @@ func (c *Config) ReadEtcdConfig() {
 	c.EC = ec
 }
 
-// InitMysqlConfig 读取Mysql配置
+// ReadMysqlConfig 读取Mysql配置
 func (c *Config) ReadMysqlConfig() {
 	mc := &MysqlConfig{
 		Username: c.viper.GetString("mysql.username"),
@@ -185,4 +219,25 @@ func (c *Config) ReadAesConfig() {
 		AesKey: c.viper.GetString("aes.key"),
 	}
 	c.AC = ac
+}
+
+// InitDbConfig Mysql主从配置读取
+func (c *Config) InitDbConfig() {
+	mc := DbConfig{}
+	mc.Separation = c.viper.GetBool("db.separation")
+	var slaves []MysqlConfig
+	err := c.viper.UnmarshalKey("db.slave", &slaves)
+	if err != nil {
+		panic(err)
+	}
+	master := MysqlConfig{
+		Username: c.viper.GetString("db.master.username"),
+		Password: c.viper.GetString("db.master.password"),
+		Host:     c.viper.GetString("db.master.host"),
+		Port:     c.viper.GetInt("db.master.port"),
+		Db:       c.viper.GetString("db.master.db"),
+	}
+	mc.Master = master
+	mc.Slave = slaves
+	c.DC = &mc
 }

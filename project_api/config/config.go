@@ -44,6 +44,25 @@ func InitConfig() *Config {
 	if err2 != nil {
 		log.Fatalln(err2)
 	}
+	// 监听配置文件变化
+	err3 := nacosClient.configClient.ListenConfig(vo.ConfigParam{
+		DataId: "config.yaml",
+		Group:  nacosClient.group,
+		OnChange: func(namespace, group, dataId, data string) {
+			// 变化
+			log.Printf("load nacos config changed %s \n", data)
+			err := conf.viper.ReadConfig(bytes.NewBuffer([]byte(data)))
+			if err != nil {
+				log.Printf("load nacos config changed err : %s \n", err.Error())
+			}
+			// 所有的配置应该重新读取
+			conf.ReLoadAllConfig()
+		},
+	})
+	if err3 != nil {
+		log.Fatalln(err3)
+	}
+
 	conf.viper.SetConfigType("yaml") //viper配置文件后缀
 	if configYaml != "" {
 		err := conf.viper.ReadConfig(bytes.NewBuffer([]byte(configYaml)))
@@ -65,10 +84,17 @@ func InitConfig() *Config {
 		}
 	}
 
-	conf.ReadServerConfig()
-	conf.InitZapLog()
-	conf.ReadEtcdConfig()
+	conf.ReLoadAllConfig()
 	return conf
+}
+
+func (c *Config) ReLoadAllConfig() {
+	c.ReadServerConfig()
+	c.InitZapLog()
+	c.ReadEtcdConfig()
+	////重新创建相关的客户端
+	//c.ReConnRedis()
+	//c.ReConnMysql()
 }
 
 // ReadServerConfig 读取服务器地址配置
