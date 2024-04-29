@@ -1,6 +1,8 @@
 package config
 
 import (
+	"bytes"
+	"github.com/nacos-group/nacos-sdk-go/v2/vo"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"log"
@@ -33,17 +35,36 @@ type EtcdConfig struct {
 // InitConfig 读取配置文件
 func InitConfig() *Config {
 	conf := &Config{viper: viper.New()}
-	workDir, _ := os.Getwd()
-	conf.viper.SetConfigName("config")               //viper 配置文件名次
-	conf.viper.SetConfigType("yaml")                 //viper配置文件后缀
-	conf.viper.AddConfigPath("/etc/ms_project/user") //配置文件目录 可添加多个 按照代码顺序读取
-	conf.viper.AddConfigPath(workDir + "/config")
-	//读入配置
-	err := conf.viper.ReadInConfig()
-	if err != nil {
-		zap.L().Error("config read wrong, err: " + err.Error())
-		log.Fatalln(err) //报错就退出
+	// 先从 nacos 读取配置， 如果读取不到 再从本地读取
+	nacosClient := InitNacosClient()
+	configYaml, err2 := nacosClient.configClient.GetConfig(vo.ConfigParam{
+		DataId: "config.yaml",
+		Group:  nacosClient.group,
+	})
+	if err2 != nil {
+		log.Fatalln(err2)
 	}
+	conf.viper.SetConfigType("yaml") //viper配置文件后缀
+	if configYaml != "" {
+		err := conf.viper.ReadConfig(bytes.NewBuffer([]byte(configYaml)))
+		if err != nil {
+			log.Fatalln(err) //报错就退出
+		}
+		//log.Printf("load nacos config %s \n", configYaml)
+	} else {
+		workDir, _ := os.Getwd()
+		conf.viper.SetConfigName("config") //viper 配置文件名次
+
+		//conf.viper.AddConfigPath("/etc/ms_project/api") //配置文件目录 可添加多个 按照代码顺序读取
+		conf.viper.AddConfigPath(workDir + "/config")
+		//读入配置
+		err := conf.viper.ReadInConfig()
+		if err != nil {
+			zap.L().Error("config read wrong, err: " + err.Error())
+			log.Fatalln(err) //报错就退出
+		}
+	}
+
 	conf.ReadServerConfig()
 	conf.InitZapLog()
 	conf.ReadEtcdConfig()
