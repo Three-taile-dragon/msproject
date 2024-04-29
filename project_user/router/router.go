@@ -2,6 +2,7 @@ package router
 
 import (
 	"github.com/gin-gonic/gin"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/resolver"
 	"log"
@@ -10,7 +11,6 @@ import (
 	"test.com/project_common/logs"
 	"test.com/project_grpc/user/login"
 	"test.com/project_user/config"
-	"test.com/project_user/internal/interceptor"
 	loginServiceV1 "test.com/project_user/pkg/service/login.service.v1"
 )
 
@@ -63,9 +63,16 @@ func RegisterGrpc() *grpc.Server {
 			login.RegisterLoginServiceServer(g, loginServiceV1.New())
 		}}
 	// grpc 拦截器	自定义统一缓存
-	cacheInterceptor := interceptor.New()
-	s := grpc.NewServer(cacheInterceptor.Cache()) //启动grpc服务
-	c.RegisterFunc(s)                             //注册grpc登陆模块
+	//cacheInterceptor := interceptor.New()
+	s := grpc.NewServer(
+		grpc.StatsHandler(otelgrpc.NewServerHandler()),
+		//grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
+		//	otelgrpc.UnaryServerInterceptor(),
+		//	cacheInterceptor.CacheInterceptor(),
+		//	)),
+		//cacheInterceptor.Cache(),
+	) //启动grpc服务
+	c.RegisterFunc(s) //注册grpc登陆模块
 	lis, err := net.Listen("tcp", config.C.GC.Addr)
 	if err != nil {
 		log.Println("cannot listen")
