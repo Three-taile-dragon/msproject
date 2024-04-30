@@ -2,8 +2,8 @@ package config
 
 import (
 	"bytes"
-	"github.com/go-redis/redis/v8"
 	"github.com/nacos-group/nacos-sdk-go/v2/vo"
+	"github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"log"
