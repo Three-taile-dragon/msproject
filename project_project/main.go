@@ -33,8 +33,11 @@ func main() {
 	gc := router.RegisterGrpc()
 	//grpc 服务注册到etcd
 	router.RegisterEtcdServer()
+	// 初始化 kafka
+	c := config.InitKafkaWriter()
 	stop := func() {
 		gc.Stop()
+		c()
 	}
 
 	//r.Run(":8080")

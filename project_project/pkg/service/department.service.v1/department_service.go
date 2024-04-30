@@ -5,7 +5,9 @@ import (
 	"github.com/jinzhu/copier"
 	"test.com/project_common/encrypts"
 	"test.com/project_common/errs"
+	"test.com/project_common/kk"
 	"test.com/project_grpc/department"
+	"test.com/project_project/config"
 	"test.com/project_project/internal/dao"
 	"test.com/project_project/internal/database/tran"
 	"test.com/project_project/internal/domain"
@@ -47,6 +49,15 @@ func (d *DepartmentService) List(ctx context.Context, msg *department.Department
 	// 返回数据
 	var list []*department.DepartmentMessage
 	_ = copier.Copy(&list, dps)
+
+	// 记录日志
+	config.SendLog(kk.Info("List", "DepartmentService.List", kk.FieldMap{
+		"organizationCode":     organizationCode,
+		"parentDepartmentCode": parentDepartmentCode,
+		"page":                 msg.Page,
+		"pageSize":             msg.PageSize,
+	}))
+
 	return &department.ListDepartmentMessage{List: list, Total: total}, nil
 }
 
