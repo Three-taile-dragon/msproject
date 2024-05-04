@@ -6,15 +6,15 @@ import (
 	"github.com/jinzhu/copier"
 	"go.uber.org/zap"
 	"net/http"
-	"os"
 	"path"
+	"strconv"
 	"test.com/project_api/api/rpc"
 	"test.com/project_api/pkg/model"
 	"test.com/project_api/pkg/model/project"
 	"test.com/project_api/pkg/model/tasks"
 	common "test.com/project_common"
 	"test.com/project_common/errs"
-	"test.com/project_common/fs"
+	pMinio "test.com/project_common/min"
 	"test.com/project_common/tms"
 	"test.com/project_grpc/task"
 	"time"
@@ -402,34 +402,26 @@ func (t *HandlerTask) uploadFiles(c *gin.Context) {
 	// 假设只上传一个文件
 	uploadFile := file["file"][0]
 	// 第一种 没有达成分片条件
-	key := ""
-	if req.TotalChunks == 1 {
-		// 不分片
-		path := "upload/" + req.ProjectCode + "/" + req.TaskCode + "/" + tms.FormatYMD(time.Now())
-		if !fs.IsExist(path) {
-			_ = os.MkdirAll(path, os.ModePerm)
-		}
-		dst := path + "/" + req.Filename
-		key = dst
-		err := c.SaveUploadedFile(uploadFile, dst)
-		if err != nil {
-			c.JSON(http.StatusOK, result.Fail(-999, err.Error()))
-			return
-		}
+	key := "msproject/" + req.Filename
+	// TODO 后续改为 配置读取
+	minioClient, err3 := pMinio.New("localhost:9009", "Fi8aGdBEH24T22C64HtE", "349DtRtogrR9iP37OtzuS2nuxt1pw2i7VlGpyAC5", false)
+	if err3 != nil {
+		c.JSON(http.StatusOK, result.Fail(-999, err3.Error()))
+		return
 	}
-	//TODO BUG 有问题 没有锁机制 导致出现多个数据流同时写入一个文件 在上传大文件(图片)时出现
-	if req.TotalChunks > 1 {
-		// 分片上传 无非就是先把每次的存储起来 追加就可以了
-		path := "upload/" + req.ProjectCode + "/" + req.TaskCode + "/" + tms.FormatYMD(time.Now())
-		if !fs.IsExist(path) {
-			_ = os.MkdirAll(path, os.ModePerm)
-		}
-		fileName := path + "/" + req.Identifier
-		openFile, err := os.OpenFile(fileName, os.O_CREATE|os.O_APPEND|os.O_RDWR, os.ModePerm)
-		if err != nil {
-			c.JSON(http.StatusOK, result.Fail(-999, err.Error()))
-			return
-		}
+	if req.TotalChunks == 1 {
+		//// 不分片
+		//path := "upload/" + req.ProjectCode + "/" + req.TaskCode + "/" + tms.FormatYMD(time.Now())
+		//if !fs.IsExist(path) {
+		//	_ = os.MkdirAll(path, os.ModePerm)
+		//}
+		//dst := path + "/" + req.Filename
+		//key = dst
+		//err := c.SaveUploadedFile(uploadFile, dst)
+		//if err != nil {
+		//	c.JSON(http.StatusOK, result.Fail(-999, err.Error()))
+		//	return
+		//}
 		open, err2 := uploadFile.Open()
 		if err2 != nil {
 			c.JSON(http.StatusOK, result.Fail(-999, err2.Error()))
@@ -439,26 +431,77 @@ func (t *HandlerTask) uploadFiles(c *gin.Context) {
 		// 追加写入
 		buf := make([]byte, req.CurrentChunkSize)
 		open.Read(buf)
-		openFile.Write(buf)
-		openFile.Close()
-		// 改名
-		newpath := path + "/" + req.Filename
-		key = newpath
+		// TODO 后续改为 配置读取
+		_, err := minioClient.Put(context.Background(),
+			"msproject",
+			req.Filename,
+			buf,
+			int64(req.TotalSize),
+			uploadFile.Header.Get("Content-Type"))
+		if err != nil {
+			c.JSON(http.StatusOK, result.Fail(-999, err.Error()))
+			return
+		}
+	}
+	//TODO BUG 有问题 没有锁机制 导致出现多个数据流同时写入一个文件 在上传大文件(图片)时出现
+	if req.TotalChunks > 1 {
+		//// 分片上传 无非就是先把每次的存储起来 追加就可以了
+		//path := "upload/" + req.ProjectCode + "/" + req.TaskCode + "/" + tms.FormatYMD(time.Now())
+		//if !fs.IsExist(path) {
+		//	_ = os.MkdirAll(path, os.ModePerm)
+		//}
+		//fileName := path + "/" + req.Identifier
+		//openFile, err := os.OpenFile(fileName, os.O_CREATE|os.O_APPEND|os.O_RDWR, os.ModePerm)
+		//if err != nil {
+		//	c.JSON(http.StatusOK, result.Fail(-999, err.Error()))
+		//	return
+		//}
+		open, err2 := uploadFile.Open()
+		if err2 != nil {
+			c.JSON(http.StatusOK, result.Fail(-999, err2.Error()))
+			return
+		}
+		defer open.Close()
+		// 追加写入
+		buf := make([]byte, req.CurrentChunkSize)
+		open.Read(buf)
+		// 分片编号
+		formatInt := strconv.FormatInt(int64(req.ChunkNumber), 10)
+
+		// TODO 后续改为 配置读取
+		_, err := minioClient.Put(context.Background(),
+			"msproject",
+			req.Filename+"_"+formatInt, // 文件名添加分片编号
+			buf,
+			int64(req.CurrentChunkSize),
+			uploadFile.Header.Get("Content-Type"))
+		if err != nil {
+			c.JSON(http.StatusOK, result.Fail(-999, err.Error()))
+			return
+		}
 		if req.TotalChunks == req.ChunkNumber {
-			//最后一块 重命名文件名
-			err3 := os.Rename(fileName, newpath)
+			// 最后一个分片
+			// 合并
+			// TODO 后续改为 配置读取
+			_, err2 := minioClient.Compose(context.Background(), "msproject", req.Filename, req.TotalChunks)
+			if err2 != nil {
+				c.JSON(http.StatusOK, result.Fail(-999, err2.Error()))
+				return
+			}
+
+			// 删除分片
+			err3 := minioClient.DelS(context.Background(), "msproject", req.Filename+"_", false)
 			if err3 != nil {
 				c.JSON(http.StatusOK, result.Fail(-999, err3.Error()))
 				return
 			}
-			//fmt.Println(err)
 		}
 	}
 	// 调用服务 存入
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	fileUrl := "http://localhost:3456/" + key
+	fileUrl := "http://localhost:9009/" + key
 	msg := &task.TaskFileReqMessage{
 		TaskCode:         req.TaskCode,
 		ProjectCode:      req.ProjectCode,
@@ -483,7 +526,7 @@ func (t *HandlerTask) uploadFiles(c *gin.Context) {
 		"file":        key,
 		"hash":        "",
 		"key":         key,
-		"url":         "http://localhost:3456/" + key,
+		"url":         "http://localhost:9009/" + key,
 		"projectName": req.ProjectName,
 	}))
 	return
