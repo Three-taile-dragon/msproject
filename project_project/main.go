@@ -35,9 +35,15 @@ func main() {
 	router.RegisterEtcdServer()
 	// 初始化 kafka
 	c := config.InitKafkaWriter()
+	// 初始化 kafka 消费者
+	reader := config.NewCacheReader()
+
+	go reader.DeleteCache()
+
 	stop := func() {
 		gc.Stop()
 		c()
+		_ = reader.R.Close()
 	}
 
 	//r.Run(":8080")

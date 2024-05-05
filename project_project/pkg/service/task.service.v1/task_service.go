@@ -9,6 +9,7 @@ import (
 	"test.com/project_common/tms"
 	"test.com/project_grpc/task"
 	"test.com/project_grpc/user/login"
+	"test.com/project_project/config"
 	"test.com/project_project/internal/dao"
 	"test.com/project_project/internal/dao/mysql"
 	"test.com/project_project/internal/data"
@@ -324,6 +325,9 @@ func (t *TaskService) SaveTask(ctx context.Context, msg *task.TaskReqMessage) (*
 
 	tm := &task.TaskMessage{}
 	_ = copier.Copy(tm, display)
+
+	// 发送 Kafka 缓存删除
+	config.SendCache([]byte("task"))
 	return tm, nil
 }
 

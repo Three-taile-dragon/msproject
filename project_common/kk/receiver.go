@@ -8,7 +8,7 @@ import (
 )
 
 type KafkaReader struct {
-	r *kafka.Reader
+	R *kafka.Reader
 }
 
 func GetReader(brokers []string, groupId, topic string) *KafkaReader {
@@ -19,19 +19,25 @@ func GetReader(brokers []string, groupId, topic string) *KafkaReader {
 		MaxBytes: 10e6, // 10MB
 	})
 	k := &KafkaReader{
-		r: r,
+		R: r,
 	}
-	go k.readMsg()
+
+	//go k.readMsg()
 	return k
 }
 
 func (r *KafkaReader) readMsg() {
 	for {
-		m, err := r.r.ReadMessage(context.Background())
+		m, err := r.R.ReadMessage(context.Background())
 		if err != nil {
 			log.Printf("kafka read message err %s \n", err.Error())
 			continue
 		}
 		fmt.Printf("message at topic/partition/offset %v/%v/%v: %s = %s\n", m.Topic, m.Partition, m.Offset, string(m.Key), string(m.Value))
 	}
+}
+
+func (r *KafkaReader) Close() error {
+	err := r.R.Close()
+	return err
 }
