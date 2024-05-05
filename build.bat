@@ -26,4 +26,5 @@ SET CGO_ENABLED=0
 SET GOOS=linux
 SET GOARCH=amd64
 go build -o project_user/target/project_user project_user/main.go
+go build -o project_project/target/project_project project_project/main.go
 go build -o project_api/target/project_api project_api/main.go

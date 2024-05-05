@@ -1,36 +1,61 @@
 server:
-  name: "project_user"
-  addr: "0.0.0.0:8080"
+  name: "msProject_project"
+  addr: "0.0.0.0:3458"
 
 zap:
-  debugFileName: "/logs/debug/project-debug.log"
-  infoFileName: "/logs/info/project-info.log"
-  warnFileName: "/logs/error/project-error.log"
+  debugFileName: "/msProject/project-project/logs/debug/project-debug.log"
+  infoFileName: "/msProject/project-project/logs/info/project-info.log"
+  warnFileName: "/msProject/project-project/logs/error/project-error.log"
   maxSize: 500,
   maxAge: 28,
   MaxBackups: 3
 redis:
-  host: "redis6"
+  host: "0.0.0.0"
   port: 6376
   password: ""
   db: 0
 grpc:
-  addr: "0.0.0.0:8881"
-  name: "user"
+  addr: "0.0.0.0:8882"
+  name: "project"
   version: "1.0.0"
   weight: 2
 etcd:
   addrs:
-    - "etcd3:2379"
+    - "0.0.0.0:2379"
 mysql:
   username: root
   password: root
-  host: 127.0.0.1
+  host: 0.0.0.0
   port: 3309
   db: msproject
+db:
+  separation: false
+  master:
+    name: master
+    username: root
+    password: root
+    host: 0.0.0.0
+    port: 3309
+    db: msproject
+  slave:
+    - username: root
+      password: root
+      host: 0.0.0.0
+      port: 3309
+      db: msproject_slave1
+      name: slave1
+    - username: root
+      password: root
+      host: 0.0.0.0
+      port: 3309
+      db: msproject_slave1
+      name: slave2
 jwt:
   #  过期时间 单位分钟
   accessExp: 60
   refreshExp: 10080
   accessSecret: dragon
   refreshSecret: dragonsss
+aes:
+  # 用于加密用户ID的aes key 24位
+  key: "awiugdhrwuiafaoaiuywfhbg"

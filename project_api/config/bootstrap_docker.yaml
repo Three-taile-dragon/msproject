@@ -1,0 +1,7 @@
+nacos:
+  namespace: ca94f74b-66c9-4402-a273-e9863c74aee0
+  group: dev
+  ipAddr: 0.0.0.0
+  port: 8848
+  scheme: http
+  contextPath: "/nacos"
